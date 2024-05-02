@@ -30,7 +30,7 @@ let client = Client::new(env::var("OPENAI_API_KEY").unwrap().to_string());
 let req = ChatCompletionRequest::new(
     GPT4.to_string(),
     vec![chat_completion::ChatCompletionMessage {
-        role: chat_completion::MessageRole::User,
+        role: common::MessageRole::User,
         content: chat_completion::Content::Text(String::from("What is bitcoin?")),
         name: None,
     }],
@@ -61,7 +61,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let req = ChatCompletionRequest::new(
         GPT4.to_string(),
         vec![chat_completion::ChatCompletionMessage {
-            role: chat_completion::MessageRole::User,
+            role: common::MessageRole::User,
             content: chat_completion::Content::Text(String::from("What is bitcoin?")),
             name: None,
         }],

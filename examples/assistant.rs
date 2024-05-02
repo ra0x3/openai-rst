@@ -1,11 +1,13 @@
-use openai_rst::api::Client;
-use openai_rst::assistant::AssistantRequest;
-use openai_rst::common::GPT4_1106_PREVIEW;
-use openai_rst::message::{CreateMessageRequest, MessageRole};
-use openai_rst::run::CreateRunRequest;
-use openai_rst::thread::CreateThreadRequest;
-use std::collections::HashMap;
-use std::env;
+use openai_rst::{
+    api::Client,
+    assistant::AssistantRequest,
+    common::MessageRole,
+    message::CreateMessageRequest,
+    models::{Model, GPT4},
+    run::CreateRunRequest,
+    thread::CreateThreadRequest,
+};
+use std::{collections::HashMap, env};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let client = Client::new(env::var("OPENAI_API_KEY").unwrap().to_string());
@@ -13,7 +15,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut tools = HashMap::new();
     tools.insert("type".to_string(), "code_interpreter".to_string());
 
-    let req = AssistantRequest::new(GPT4_1106_PREVIEW.to_string());
+    let req = AssistantRequest::new(Model::GPT4(GPT4::GPT40125Preview));
     let req = req
         .clone()
         .description("this is a test assistant".to_string());

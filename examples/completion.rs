@@ -1,13 +1,15 @@
-use crate::models;
-use openai_rst::api::Client;
-use openai_rst::completion::{self, CompletionRequest};
+use openai_rst::{
+    api::Client,
+    completion::CompletionRequest,
+    models::{Model, GPT3},
+};
 use std::env;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let client = Client::new(env::var("OPENAI_API_KEY").unwrap().to_string());
 
     let req = CompletionRequest::new(
-        models::GPT3::Davinci.into(),
+        Model::GPT3(GPT3::GPT35Turbo),
         String::from("What is Bitcoin?"),
     )
     .max_tokens(3000)

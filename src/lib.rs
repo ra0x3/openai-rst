@@ -15,4 +15,3 @@ pub mod models;
 pub mod moderation;
 pub mod run;
 pub mod thread;
-pub mod utils;

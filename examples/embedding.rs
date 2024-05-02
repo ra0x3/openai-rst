@@ -1,13 +1,17 @@
-use openai_rst::api::Client;
-use openai_rst::common::TEXT_EMBEDDING_3_SMALL;
-use openai_rst::embedding::EmbeddingRequest;
+use openai_rst::{
+    api::Client,
+    embedding::EmbeddingRequest,
+    models::{EmbeddingsModels, Model},
+};
 use std::env;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let client = Client::new(env::var("OPENAI_API_KEY").unwrap().to_string());
 
-    let mut req =
-        EmbeddingRequest::new(TEXT_EMBEDDING_3_SMALL.to_string(), "story time".to_string());
+    let mut req = EmbeddingRequest::new(
+        Model::Embedding(EmbeddingsModels::TextEmbeddingAda002),
+        "story time".to_string(),
+    );
     req.dimensions = Some(10);
 
     let result = client.embedding(req)?;

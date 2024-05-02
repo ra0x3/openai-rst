@@ -1,9 +1,14 @@
-use openai_rst::api::Client;
-use openai_rst::chat_completion::{self, ChatCompletionRequest};
-use openai_rst::common::GPT3_5_TURBO_0613;
+use openai_rst::{
+    api::Client,
+    chat_completion::{
+        ChatCompletionMessage, ChatCompletionRequest, Content, FinishReason, Function,
+        FunctionParameters, JSONSchemaDefine, JSONSchemaType, Tool, ToolChoiceType, ToolType,
+    },
+    common::MessageRole,
+    models::{Model, GPT3},
+};
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
-use std::{env, vec};
+use std::{collections::HashMap, env, vec};
 
 fn get_coin_price(coin: &str) -> f64 {
     let coin = coin.to_lowercase();
@@ -20,38 +25,34 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut properties = HashMap::new();
     properties.insert(
         "coin".to_string(),
-        Box::new(chat_completion::JSONSchemaDefine {
-            schema_type: Some(chat_completion::JSONSchemaType::String),
+        Box::new(JSONSchemaDefine {
+            schema_type: Some(JSONSchemaType::String),
             description: Some("The cryptocurrency to get the price of".to_string()),
             ..Default::default()
         }),
     );
 
     let req = ChatCompletionRequest::new(
-        GPT3_5_TURBO_0613.to_string(),
-        vec![chat_completion::ChatCompletionMessage {
-            role: chat_completion::MessageRole::User,
-            content: chat_completion::Content::Text(String::from("What is the price of Ethereum?")),
+        Model::GPT3(GPT3::GPT35Turbo),
+        vec![ChatCompletionMessage {
+            role: MessageRole::User,
+            content: Content::Text(String::from("What is the price of Ethereum?")),
             name: None,
         }],
     )
-    .tools(vec![chat_completion::Tool {
-        r#type: chat_completion::ToolType::Function,
-        function: chat_completion::Function {
+    .tools(vec![Tool {
+        r#type: ToolType::Function,
+        function: Function {
             name: String::from("get_coin_price"),
             description: Some(String::from("Get the price of a cryptocurrency")),
-            parameters: chat_completion::FunctionParameters {
-                schema_type: chat_completion::JSONSchemaType::Object,
+            parameters: FunctionParameters {
+                schema_type: JSONSchemaType::Object,
                 properties: Some(properties),
                 required: Some(vec![String::from("coin")]),
             },
         },
     }])
-    .tool_choice(chat_completion::ToolChoiceType::Auto);
-
-    // debug request json
-    // let serialized = serde_json::to_string(&req).unwrap();
-    // println!("{}", serialized);
+    .tool_choice(ToolChoiceType::Auto);
 
     let result = client.chat_completion(req)?;
 
@@ -60,14 +61,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             println!("No finish_reason");
             println!("{:?}", result.choices[0].message.content);
         }
-        Some(chat_completion::FinishReason::stop) => {
+        Some(FinishReason::stop) => {
             println!("Stop");
             println!("{:?}", result.choices[0].message.content);
         }
-        Some(chat_completion::FinishReason::length) => {
+        Some(FinishReason::length) => {
             println!("Length");
         }
-        Some(chat_completion::FinishReason::tool_calls) => {
+        Some(FinishReason::tool_calls) => {
             println!("ToolCalls");
             #[derive(Deserialize, Serialize)]
             struct Currency {
@@ -85,14 +86,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 }
             }
         }
-        Some(chat_completion::FinishReason::content_filter) => {
+        Some(FinishReason::content_filter) => {
             println!("ContentFilter");
         }
-        Some(chat_completion::FinishReason::null) => {
+        Some(FinishReason::null) => {
             println!("Null");
         }
     }
     Ok(())
 }
-
-// OPENAI_API_KEY=xxxx cargo run --package openai-api-rs --example function_call

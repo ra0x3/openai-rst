@@ -1,6 +1,6 @@
+use crate::{impl_builder_methods, models::Model};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use crate::{common::impl_builder_methods, models::Model};
 
 #[derive(Debug, Serialize, Clone)]
 pub struct AssistantRequest {

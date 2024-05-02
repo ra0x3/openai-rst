@@ -74,11 +74,30 @@ pub enum ClipModels {
     ClipVitBasePatch32,
 }
 
+#[derive(EnumString, Debug, Serialize, Deserialize, Clone)]
+pub enum EmbeddingsModels {
+    #[serde(rename = "text-embedding-ada-002")]
+    TextEmbeddingAda002,
+    #[serde(rename = "text-embedding-babbage-001")]
+    TextEmbeddingBabbage001,
+    #[serde(rename = "text-embedding-babbage-002")]
+    TextEmbeddingBabbage002,
+    #[serde(rename = "text-embedding-curie-001")]
+    TextEmbeddingCurie001,
+    #[serde(rename = "text-embedding-curie-002")]
+    TextEmbeddingCurie002,
+    #[serde(rename = "text-embedding-davinci-001")]
+    TextEmbeddingDavinci001,
+    #[serde(rename = "text-embedding-davinci-002")]
+    TextEmbeddingDavinci002,
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub enum Model {
     GPT4(GPT4),
     GPT3(GPT3),
     Dalle(Dalle),
     Whisper(Whisper),
-    ClipModels(ClipModels),
+    Clip(ClipModels),
+    Embedding(EmbeddingsModels),
 }
