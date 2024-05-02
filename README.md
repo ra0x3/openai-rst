@@ -1,7 +1,9 @@
+⚠️ Forked from [openai-rs-api](https://github.com/dongri/openai-api-rs).
+
 # OpenAI API client library for Rust (unofficial)
 The OpenAI API client Rust library provides convenient access to the OpenAI API from Rust applications.
 
-Check out the [docs.rs](https://docs.rs/openai-api-rs/).
+Check out the [docs.rs](https://docs.rs/openai-rst).
 
 ## Installation:
 Cargo.toml
@@ -28,7 +30,7 @@ let client = Client::new(env::var("OPENAI_API_KEY").unwrap().to_string());
 let req = ChatCompletionRequest::new(
     GPT4.to_string(),
     vec![chat_completion::ChatCompletionMessage {
-        role: chat_completion::MessageRole::user,
+        role: chat_completion::MessageRole::User,
         content: chat_completion::Content::Text(String::from("What is bitcoin?")),
         name: None,
     }],
@@ -48,9 +50,9 @@ $ export OPENAI_API_BASE=https://api.openai.com/v1
 
 ## Example of chat completion
 ```rust
-use openai_rst::v1::api::Client;
-use openai_rst::v1::chat_completion::{self, ChatCompletionRequest};
-use openai_rst::v1::common::GPT4;
+use openai_rst::api::Client;
+use openai_rst::chat_completion::{self, ChatCompletionRequest};
+use openai_rst::common::GPT4;
 use std::env;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -59,7 +61,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let req = ChatCompletionRequest::new(
         GPT4.to_string(),
         vec![chat_completion::ChatCompletionMessage {
-            role: chat_completion::MessageRole::user,
+            role: chat_completion::MessageRole::User,
             content: chat_completion::Content::Text(String::from("What is bitcoin?")),
             name: None,
         }],

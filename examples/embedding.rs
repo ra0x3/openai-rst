@@ -1,6 +1,6 @@
-use openai_rst::v1::api::Client;
-use openai_rst::v1::common::TEXT_EMBEDDING_3_SMALL;
-use openai_rst::v1::embedding::EmbeddingRequest;
+use openai_rst::api::Client;
+use openai_rst::common::TEXT_EMBEDDING_3_SMALL;
+use openai_rst::embedding::EmbeddingRequest;
 use std::env;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {

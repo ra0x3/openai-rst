@@ -1,9 +1,9 @@
-use openai_rst::v1::api::Client;
-use openai_rst::v1::assistant::AssistantRequest;
-use openai_rst::v1::common::GPT4_1106_PREVIEW;
-use openai_rst::v1::message::{CreateMessageRequest, MessageRole};
-use openai_rst::v1::run::CreateRunRequest;
-use openai_rst::v1::thread::CreateThreadRequest;
+use openai_rst::api::Client;
+use openai_rst::assistant::AssistantRequest;
+use openai_rst::common::GPT4_1106_PREVIEW;
+use openai_rst::message::{CreateMessageRequest, MessageRole};
+use openai_rst::run::CreateRunRequest;
+use openai_rst::thread::CreateThreadRequest;
 use std::collections::HashMap;
 use std::env;
 
@@ -29,7 +29,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("{:?}", thread_result.id.clone());
 
     let message_req = CreateMessageRequest::new(
-        MessageRole::user,
+        MessageRole::User,
         "`I need to solve the equation 3x + 11 = 14. Can you help me?".to_string(),
     );
 

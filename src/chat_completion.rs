@@ -1,10 +1,11 @@
+use crate::common::MessageRole;
 use serde::ser::SerializeMap;
 use serde::{Deserialize, Serialize, Serializer};
 use serde_json::Value;
 use std::collections::HashMap;
 
+use crate::common;
 use crate::impl_builder_methods;
-use crate::v1::common;
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
 pub enum ToolChoiceType {
@@ -88,15 +89,6 @@ impl_builder_methods!(
     tools: Vec<Tool>,
     tool_choice: ToolChoiceType
 );
-
-#[derive(Debug, Deserialize, Serialize, Clone, PartialEq, Eq)]
-#[allow(non_camel_case_types)]
-pub enum MessageRole {
-    user,
-    system,
-    assistant,
-    function,
-}
 
 #[derive(Debug, Deserialize, Clone, PartialEq, Eq)]
 pub enum Content {

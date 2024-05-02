@@ -1,40 +1,40 @@
-use crate::v1::assistant::{
+use crate::assistant::{
     AssistantFileObject, AssistantFileRequest, AssistantObject, AssistantRequest, DeletionStatus,
     ListAssistant, ListAssistantFile,
 };
-use crate::v1::audio::{
+use crate::audio::{
     AudioSpeechRequest, AudioSpeechResponse, AudioTranscriptionRequest, AudioTranscriptionResponse,
     AudioTranslationRequest, AudioTranslationResponse,
 };
-use crate::v1::chat_completion::{ChatCompletionRequest, ChatCompletionResponse};
-use crate::v1::completion::{CompletionRequest, CompletionResponse};
-use crate::v1::edit::{EditRequest, EditResponse};
-use crate::v1::embedding::{EmbeddingRequest, EmbeddingResponse};
-use crate::v1::error::APIError;
-use crate::v1::file::{
+use crate::chat_completion::{ChatCompletionRequest, ChatCompletionResponse};
+use crate::completion::{CompletionRequest, CompletionResponse};
+use crate::edit::{EditRequest, EditResponse};
+use crate::embedding::{EmbeddingRequest, EmbeddingResponse};
+use crate::error::APIError;
+use crate::file::{
     FileDeleteRequest, FileDeleteResponse, FileListResponse, FileRetrieveContentRequest,
     FileRetrieveContentResponse, FileRetrieveRequest, FileRetrieveResponse, FileUploadRequest,
     FileUploadResponse,
 };
-use crate::v1::fine_tuning::{
+use crate::fine_tuning::{
     CancelFineTuningJobRequest, CreateFineTuningJobRequest, FineTuningJobEvent,
     FineTuningJobObject, FineTuningPagination, ListFineTuningJobEventsRequest,
     RetrieveFineTuningJobRequest,
 };
-use crate::v1::image::{
+use crate::image::{
     ImageEditRequest, ImageEditResponse, ImageGenerationRequest, ImageGenerationResponse,
     ImageVariationRequest, ImageVariationResponse,
 };
-use crate::v1::message::{
+use crate::message::{
     CreateMessageRequest, ListMessage, ListMessageFile, MessageFileObject, MessageObject,
     ModifyMessageRequest,
 };
-use crate::v1::moderation::{CreateModerationRequest, CreateModerationResponse};
-use crate::v1::run::{
+use crate::moderation::{CreateModerationRequest, CreateModerationResponse};
+use crate::run::{
     CreateRunRequest, CreateThreadAndRunRequest, ListRun, ListRunStep, ModifyRunRequest, RunObject,
     RunStepObject,
 };
-use crate::v1::thread::{CreateThreadRequest, ModifyThreadRequest, ThreadObject};
+use crate::thread::{CreateThreadRequest, ModifyThreadRequest, ThreadObject};
 
 use minreq::Response;
 use std::fs::{create_dir_all, File};

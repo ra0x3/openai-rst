@@ -1,6 +1,6 @@
-use openai_rst::v1::api::Client;
-use openai_rst::v1::chat_completion::{self, ChatCompletionRequest};
-use openai_rst::v1::common::GPT4;
+use openai_rst::api::Client;
+use openai_rst::chat_completion::{self, ChatCompletionRequest};
+use openai_rst::common::GPT4;
 use std::env;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -9,7 +9,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let req = ChatCompletionRequest::new(
         GPT4.to_string(),
         vec![chat_completion::ChatCompletionMessage {
-            role: chat_completion::MessageRole::user,
+            role: chat_completion::MessageRole::User,
             content: chat_completion::Content::Text(String::from("What is bitcoin?")),
             name: None,
         }],

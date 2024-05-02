@@ -1,11 +1,10 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-
-use crate::impl_builder_methods;
+use crate::{common::impl_builder_methods, models::Model};
 
 #[derive(Debug, Serialize, Clone)]
 pub struct AssistantRequest {
-    pub model: String,
+    pub model: Model,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub name: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -21,7 +20,7 @@ pub struct AssistantRequest {
 }
 
 impl AssistantRequest {
-    pub fn new(model: String) -> Self {
+    pub fn new(model: Model) -> Self {
         Self {
             model,
             name: None,
@@ -53,7 +52,7 @@ pub struct AssistantObject {
     pub name: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
-    pub model: String,
+    pub model: Model,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub instructions: Option<String>,
     pub tools: Vec<HashMap<String, String>>,

@@ -1,5 +1,14 @@
 use serde::{Deserialize, Serialize};
 
+#[derive(Debug, Deserialize, Serialize, Clone, PartialEq, Eq)]
+pub enum MessageRole {
+    User,
+    System,
+    Assistant,
+    Function,
+}
+
+
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Usage {
     pub prompt_tokens: i32,
