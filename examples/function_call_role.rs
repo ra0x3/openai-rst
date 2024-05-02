@@ -1,9 +1,11 @@
-use openai_api_rs::v1::api::Client;
-use openai_api_rs::v1::chat_completion::{self, ChatCompletionRequest};
-use openai_api_rs::v1::common::GPT3_5_TURBO_0613;
+use openai_rst::{
+    api::Client,
+    chat_completion::{self, ChatCompletionRequest},
+    common::MessageRole,
+    models::{Model, GPT3},
+};
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
-use std::{env, vec};
+use std::{collections::HashMap, env, vec};
 
 fn get_coin_price(coin: &str) -> f64 {
     let coin = coin.to_lowercase();
@@ -28,9 +30,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     );
 
     let req = ChatCompletionRequest::new(
-        GPT3_5_TURBO_0613.to_string(),
+        Model::GPT3(GPT3::GPT35Turbo),
         vec![chat_completion::ChatCompletionMessage {
-            role: chat_completion::MessageRole::user,
+            role: MessageRole::User,
             content: chat_completion::Content::Text(String::from("What is the price of Ethereum?")),
             name: None,
         }],
@@ -79,17 +81,17 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 println!("price: {}", price);
 
                 let req = ChatCompletionRequest::new(
-                    GPT3_5_TURBO_0613.to_string(),
+                    Model::GPT3(GPT3::GPT35Turbo),
                     vec![
                         chat_completion::ChatCompletionMessage {
-                            role: chat_completion::MessageRole::user,
+                            role: MessageRole::User,
                             content: chat_completion::Content::Text(String::from(
                                 "What is the price of Ethereum?",
                             )),
                             name: None,
                         },
                         chat_completion::ChatCompletionMessage {
-                            role: chat_completion::MessageRole::function,
+                            role: MessageRole::Function,
                             content: chat_completion::Content::Text({
                                 let price = get_coin_price(&coin);
                                 format!("{{\"price\": {}}}", price)

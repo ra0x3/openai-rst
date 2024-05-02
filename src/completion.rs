@@ -2,25 +2,11 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::option::Option;
 
-use crate::impl_builder_methods;
-use crate::v1::common;
-
-pub const GPT3_TEXT_DAVINCI_003: &str = "text-davinci-003";
-pub const GPT3_TEXT_DAVINCI_002: &str = "text-davinci-002";
-pub const GPT3_TEXT_CURIE_001: &str = "text-curie-001";
-pub const GPT3_TEXT_BABBAGE_001: &str = "text-babbage-001";
-pub const GPT3_TEXT_ADA_001: &str = "text-ada-001";
-pub const GPT3_TEXT_DAVINCI_001: &str = "text-davinci-001";
-pub const GPT3_DAVINCI_INSTRUCT_BETA: &str = "davinci-instruct-beta";
-pub const GPT3_DAVINCI: &str = "davinci";
-pub const GPT3_CURIE_INSTRUCT_BETA: &str = "curie-instruct-beta";
-pub const GPT3_CURIE: &str = "curie";
-pub const GPT3_ADA: &str = "ada";
-pub const GPT3_BABBAGE: &str = "babbage";
+use crate::{common, impl_builder_methods, models::Model};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct CompletionRequest {
-    pub model: String,
+    pub model: Model,
     pub prompt: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub suffix: Option<String>,
@@ -53,7 +39,7 @@ pub struct CompletionRequest {
 }
 
 impl CompletionRequest {
-    pub fn new(model: String, prompt: String) -> Self {
+    pub fn new(model: Model, prompt: String) -> Self {
         Self {
             model,
             prompt,

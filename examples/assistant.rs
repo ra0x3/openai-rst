@@ -1,11 +1,13 @@
-use openai_api_rs::v1::api::Client;
-use openai_api_rs::v1::assistant::AssistantRequest;
-use openai_api_rs::v1::common::GPT4_1106_PREVIEW;
-use openai_api_rs::v1::message::{CreateMessageRequest, MessageRole};
-use openai_api_rs::v1::run::CreateRunRequest;
-use openai_api_rs::v1::thread::CreateThreadRequest;
-use std::collections::HashMap;
-use std::env;
+use openai_rst::{
+    api::Client,
+    assistant::AssistantRequest,
+    common::MessageRole,
+    message::CreateMessageRequest,
+    models::{Model, GPT4},
+    run::CreateRunRequest,
+    thread::CreateThreadRequest,
+};
+use std::{collections::HashMap, env};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let client = Client::new(env::var("OPENAI_API_KEY").unwrap().to_string());
@@ -13,7 +15,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut tools = HashMap::new();
     tools.insert("type".to_string(), "code_interpreter".to_string());
 
-    let req = AssistantRequest::new(GPT4_1106_PREVIEW.to_string());
+    let req = AssistantRequest::new(Model::GPT4(GPT4::GPT40125Preview));
     let req = req
         .clone()
         .description("this is a test assistant".to_string());
@@ -29,7 +31,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("{:?}", thread_result.id.clone());
 
     let message_req = CreateMessageRequest::new(
-        MessageRole::user,
+        MessageRole::User,
         "`I need to solve the equation 3x + 11 = 14. Can you help me?".to_string(),
     );
 

@@ -1,3 +1,4 @@
+use crate::common::MessageRole;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -51,16 +52,7 @@ pub struct Message {
     pub metadata: Option<HashMap<String, String>>,
 }
 
-#[derive(Debug, Deserialize, Serialize, Clone, PartialEq, Eq)]
-#[allow(non_camel_case_types)]
-pub enum MessageRole {
-    user,
-    system,
-    assistant,
-    function,
-}
-
-#[derive(Debug, Serialize, Clone)]
+#[derive(Default, Debug, Serialize, Clone)]
 pub struct ModifyThreadRequest {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub metadata: Option<HashMap<String, String>>,
@@ -69,12 +61,6 @@ pub struct ModifyThreadRequest {
 impl ModifyThreadRequest {
     pub fn new() -> Self {
         Self { metadata: None }
-    }
-}
-
-impl Default for ModifyThreadRequest {
-    fn default() -> Self {
-        Self::new()
     }
 }
 

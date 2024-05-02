@@ -2,8 +2,8 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::option::Option;
 
+use crate::common;
 use crate::impl_builder_methods;
-use crate::v1::common;
 
 #[derive(Debug, Serialize, Clone)]
 pub struct EditRequest {

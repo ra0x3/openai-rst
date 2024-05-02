@@ -1,8 +1,6 @@
+use crate::{impl_builder_methods, models::Model};
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
-use std::option::Option;
-
-use crate::impl_builder_methods;
+use std::{collections::HashMap, option::Option};
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct EmbeddingData {
@@ -13,7 +11,7 @@ pub struct EmbeddingData {
 
 #[derive(Debug, Serialize, Clone)]
 pub struct EmbeddingRequest {
-    pub model: String,
+    pub model: Model,
     pub input: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub dimensions: Option<i32>,
@@ -22,7 +20,7 @@ pub struct EmbeddingRequest {
 }
 
 impl EmbeddingRequest {
-    pub fn new(model: String, input: String) -> Self {
+    pub fn new(model: Model, input: String) -> Self {
         Self {
             model,
             input,
@@ -41,7 +39,7 @@ impl_builder_methods!(
 pub struct EmbeddingResponse {
     pub object: String,
     pub data: Vec<EmbeddingData>,
-    pub model: String,
+    pub model: Model,
     pub usage: Usage,
     pub headers: Option<HashMap<String, String>>,
 }

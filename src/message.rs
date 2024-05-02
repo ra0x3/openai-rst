@@ -1,3 +1,4 @@
+use crate::common::MessageRole;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -68,15 +69,6 @@ pub struct MessageObject {
     pub file_ids: Vec<String>,
     pub metadata: HashMap<String, String>,
     pub headers: Option<HashMap<String, String>>,
-}
-
-#[derive(Debug, Deserialize, Serialize, Clone, PartialEq, Eq)]
-#[allow(non_camel_case_types)]
-pub enum MessageRole {
-    user,
-    system,
-    assistant,
-    function,
 }
 
 #[derive(Debug, Deserialize, Serialize)]

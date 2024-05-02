@@ -1,15 +1,18 @@
-use openai_api_rs::v1::api::Client;
-use openai_api_rs::v1::chat_completion::{self, ChatCompletionRequest};
-use openai_api_rs::v1::common::GPT4_VISION_PREVIEW;
+use openai_rst::{
+    api::Client,
+    chat_completion::{self, ChatCompletionRequest},
+    common::MessageRole,
+    models::{Model, GPT4},
+};
 use std::env;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let client = Client::new(env::var("OPENAI_API_KEY").unwrap().to_string());
 
     let req = ChatCompletionRequest::new(
-        GPT4_VISION_PREVIEW.to_string(),
+        Model::GPT4(GPT4::GPT40125Preview),
         vec![chat_completion::ChatCompletionMessage {
-            role: chat_completion::MessageRole::user,
+            role: MessageRole::User,
             content: chat_completion::Content::ImageUrl(vec![
                 chat_completion::ImageUrl {
                     r#type: chat_completion::ContentType::text,

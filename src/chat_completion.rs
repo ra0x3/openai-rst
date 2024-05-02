@@ -1,10 +1,11 @@
-use serde::ser::SerializeMap;
-use serde::{Deserialize, Serialize, Serializer};
+use crate::{
+    common::{MessageRole, Usage},
+    impl_builder_methods,
+    models::Model,
+};
+use serde::{ser::SerializeMap, Deserialize, Serialize, Serializer};
 use serde_json::Value;
 use std::collections::HashMap;
-
-use crate::impl_builder_methods;
-use crate::v1::common;
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
 pub enum ToolChoiceType {
@@ -15,7 +16,7 @@ pub enum ToolChoiceType {
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ChatCompletionRequest {
-    pub model: String,
+    pub model: Model,
     pub messages: Vec<ChatCompletionMessage>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub temperature: Option<f64>,
@@ -49,7 +50,7 @@ pub struct ChatCompletionRequest {
 }
 
 impl ChatCompletionRequest {
-    pub fn new(model: String, messages: Vec<ChatCompletionMessage>) -> Self {
+    pub fn new(model: Model, messages: Vec<ChatCompletionMessage>) -> Self {
         Self {
             model,
             messages,
@@ -88,15 +89,6 @@ impl_builder_methods!(
     tools: Vec<Tool>,
     tool_choice: ToolChoiceType
 );
-
-#[derive(Debug, Deserialize, Serialize, Clone, PartialEq, Eq)]
-#[allow(non_camel_case_types)]
-pub enum MessageRole {
-    user,
-    system,
-    assistant,
-    function,
-}
 
 #[derive(Debug, Deserialize, Clone, PartialEq, Eq)]
 pub enum Content {
@@ -171,9 +163,9 @@ pub struct ChatCompletionResponse {
     pub id: String,
     pub object: String,
     pub created: i64,
-    pub model: String,
+    pub model: Model,
     pub choices: Vec<ChatCompletionChoice>,
-    pub usage: common::Usage,
+    pub usage: Usage,
     pub system_fingerprint: Option<String>,
     pub headers: Option<HashMap<String, String>>,
 }

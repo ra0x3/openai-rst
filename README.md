@@ -1,13 +1,15 @@
+⚠️ Forked from [openai-rs-api](https://github.com/dongri/openai-api-rs).
+
 # OpenAI API client library for Rust (unofficial)
 The OpenAI API client Rust library provides convenient access to the OpenAI API from Rust applications.
 
-Check out the [docs.rs](https://docs.rs/openai-api-rs/).
+Check out the [docs.rs](https://docs.rs/openai-rst).
 
 ## Installation:
 Cargo.toml
 ```toml
 [dependencies]
-openai-api-rs = "4.0.8"
+openai-rst = "0.1.0"
 ```
 
 ## Usage
@@ -26,10 +28,10 @@ let client = Client::new(env::var("OPENAI_API_KEY").unwrap().to_string());
 ### Create request
 ```rust
 let req = ChatCompletionRequest::new(
-    GPT4.to_string(),
-    vec![chat_completion::ChatCompletionMessage {
-        role: chat_completion::MessageRole::user,
-        content: chat_completion::Content::Text(String::from("What is bitcoin?")),
+    Model::GPT4(GPT4::GPT4),
+    vec![ChatCompletionMessage {
+        role: MessageRole::User,
+        content: Content::Text(String::from("What is bitcoin?")),
         name: None,
     }],
 );
@@ -48,19 +50,17 @@ $ export OPENAI_API_BASE=https://api.openai.com/v1
 
 ## Example of chat completion
 ```rust
-use openai_api_rs::v1::api::Client;
-use openai_api_rs::v1::chat_completion::{self, ChatCompletionRequest};
-use openai_api_rs::v1::common::GPT4;
+use openai_rst::{chat_completion::ChatCompletionRequest, api::Client, models::{Model, GPT4}};
 use std::env;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let client = Client::new(env::var("OPENAI_API_KEY").unwrap().to_string());
 
     let req = ChatCompletionRequest::new(
-        GPT4.to_string(),
-        vec![chat_completion::ChatCompletionMessage {
-            role: chat_completion::MessageRole::user,
-            content: chat_completion::Content::Text(String::from("What is bitcoin?")),
+        Model::GPT4(GPT4::GPT4),
+        vec![ChatCompletionMessage {
+            role: MessageRole::User,
+            content: Content::Text(String::from("What is bitcoin?")),
             name: None,
         }],
     );
