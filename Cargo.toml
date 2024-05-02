@@ -1,24 +1,15 @@
 [package]
-name = "openai-api-rs"
-version = "4.0.8"
+name = "openai-rst"
+rust-version = "1.77.0"
+version = "0.1.0"
 edition = "2021"
-authors = ["Dongri Jin <dongrium@gmail.com>"]
-license = "MIT"
-description = "OpenAI API client library for Rust (unofficial)"
-repository = "https://github.com/dongri/openai-api-rs"
+homepage = "https://github.com/ra0x3/openai-rst"
+authors = ["Rashad Alston <rashad@helpar.io>", "Dongri Jin <dongrium@gmail.com>"]
+license = "Apache-2.0"
+description = "OpenAI API Rust client"
+repository = "https://github.com/ra0x3/openai-rst"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
-[dependencies.serde]
-version = "1"
-features = ["derive"]
-default-features = false
-
-[dependencies.serde_json]
-version = "1"
-default-features = false
-
-[dependencies.minreq]
-version = "2"
-default-features = false
-features = ["https-rustls", "json-using-serde", "proxy"]
+[dependencies]
+minreq = { version = "2", default-features = false, features = ["https-rustls", "json-using-serde", "proxy"] }
+serde = { version = "1.0", default-features = false, features = ["derive"] }
+serde_json = { version = "1.0", default-features = false }

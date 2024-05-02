@@ -1,9 +1,9 @@
-use openai_api_rs::v1::api::Client;
-use openai_api_rs::v1::assistant::AssistantRequest;
-use openai_api_rs::v1::common::GPT4_1106_PREVIEW;
-use openai_api_rs::v1::message::{CreateMessageRequest, MessageRole};
-use openai_api_rs::v1::run::CreateRunRequest;
-use openai_api_rs::v1::thread::CreateThreadRequest;
+use openai_rst::v1::api::Client;
+use openai_rst::v1::assistant::AssistantRequest;
+use openai_rst::v1::common::GPT4_1106_PREVIEW;
+use openai_rst::v1::message::{CreateMessageRequest, MessageRole};
+use openai_rst::v1::run::CreateRunRequest;
+use openai_rst::v1::thread::CreateThreadRequest;
 use std::collections::HashMap;
 use std::env;
 

@@ -1,6 +1,6 @@
-use openai_api_rs::v1::api::Client;
-use openai_api_rs::v1::chat_completion::{self, ChatCompletionRequest};
-use openai_api_rs::v1::common::GPT4_VISION_PREVIEW;
+use openai_rst::v1::api::Client;
+use openai_rst::v1::chat_completion::{self, ChatCompletionRequest};
+use openai_rst::v1::common::GPT4_VISION_PREVIEW;
 use std::env;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {

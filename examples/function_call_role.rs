@@ -1,6 +1,6 @@
-use openai_api_rs::v1::api::Client;
-use openai_api_rs::v1::chat_completion::{self, ChatCompletionRequest};
-use openai_api_rs::v1::common::GPT3_5_TURBO_0613;
+use openai_rst::v1::api::Client;
+use openai_rst::v1::chat_completion::{self, ChatCompletionRequest};
+use openai_rst::v1::common::GPT3_5_TURBO_0613;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::{env, vec};

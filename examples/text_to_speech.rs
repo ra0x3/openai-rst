@@ -1,5 +1,5 @@
-use openai_api_rs::v1::api::Client;
-use openai_api_rs::v1::audio::{self, AudioSpeechRequest, TTS_1};
+use openai_rst::v1::api::Client;
+use openai_rst::v1::audio::{self, AudioSpeechRequest, TTS_1};
 use std::env;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
