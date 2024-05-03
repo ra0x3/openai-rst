@@ -16,7 +16,7 @@ pub enum ToolChoiceType {
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ChatCompletionRequest {
-    pub model: Model,
+    pub model: String,
     pub messages: Vec<ChatCompletionMessage>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub temperature: Option<f64>,
@@ -51,6 +51,15 @@ pub struct ChatCompletionRequest {
 
 impl ChatCompletionRequest {
     pub fn new(model: Model, messages: Vec<ChatCompletionMessage>) -> Self {
+        let model = match model {
+            Model::GPT4(m) => m.to_string(),
+            Model::GPT3(m) => m.to_string(),
+            Model::Dalle(m) => m.to_string(),
+            Model::Whisper(m) => m.to_string(),
+            Model::Clip(m) => m.to_string(),
+            Model::Embedding(m) => m.to_string(),
+        };
+
         Self {
             model,
             messages,
@@ -163,11 +172,19 @@ pub struct ChatCompletionResponse {
     pub id: String,
     pub object: String,
     pub created: i64,
-    pub model: Model,
+    pub model: String,
     pub choices: Vec<ChatCompletionChoice>,
     pub usage: Usage,
     pub system_fingerprint: Option<String>,
     pub headers: Option<HashMap<String, String>>,
+}
+
+impl ChatCompletionResponse {
+    pub fn message_content(&self) -> Option<&String> {
+        self.choices.last().and_then(|choice| {
+            return choice.message.content.as_ref();
+        })
+    }
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone, PartialEq, Eq)]

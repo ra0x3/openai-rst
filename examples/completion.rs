@@ -1,5 +1,5 @@
 use openai_rst::{
-    api::Client,
+    client::Client,
     completion::CompletionRequest,
     models::{Model, GPT3},
 };
@@ -25,4 +25,4 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-// OPENAI_API_KEY=xxxx cargo run --package openai-api-rs --example completion
+// OPENAI_API_KEY=xxxx cargo run --package openai-rst --example completion

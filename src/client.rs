@@ -35,16 +35,22 @@ use crate::run::{
     RunStepObject,
 };
 use crate::thread::{CreateThreadRequest, ModifyThreadRequest, ThreadObject};
-
-use minreq::Response;
-use std::fs::{create_dir_all, File};
-use std::io::Write;
-use std::path::Path;
+use reqwest::{
+    header::{HeaderMap, HeaderValue, AUTHORIZATION, CONTENT_TYPE},
+    Client, RequestBuilder, Response,
+};
+use std::{
+    fs::{create_dir_all, File},
+    io::Write,
+    path::Path,
+};
 
 const API_URL_V1: &str = "https://api.openai.com/v1";
 
+type APIResult<T> = Result<T, APIError>;
+
 pub struct Client {
-    pub api_endpoint: String,
+    pub endpoint: String,
     pub api_key: String,
     pub organization: Option<String>,
     pub proxy: Option<String>,
@@ -56,9 +62,9 @@ impl Client {
         Self::new_with_endpoint(endpoint, api_key)
     }
 
-    pub fn new_with_endpoint(api_endpoint: String, api_key: String) -> Self {
+    pub fn new_with_endpoint(endpoint: String, api_key: String) -> Self {
         Self {
-            api_endpoint,
+            endpoint,
             api_key,
             organization: None,
             proxy: None,
@@ -68,7 +74,7 @@ impl Client {
     pub fn new_with_organization(api_key: String, organization: String) -> Self {
         let endpoint = std::env::var("OPENAI_API_BASE").unwrap_or_else(|_| API_URL_V1.to_owned());
         Self {
-            api_endpoint: endpoint,
+            endpoint: endpoint,
             api_key,
             organization: organization.into(),
             proxy: None,
@@ -78,506 +84,529 @@ impl Client {
     pub fn new_with_proxy(api_key: String, proxy: String) -> Self {
         let endpoint = std::env::var("OPENAI_API_BASE").unwrap_or_else(|_| API_URL_V1.to_owned());
         Self {
-            api_endpoint: endpoint,
+            endpoint: endpoint,
             api_key,
             organization: None,
             proxy: Some(proxy),
         }
     }
 
-    pub fn build_request(&self, request: minreq::Request, is_beta: bool) -> minreq::Request {
-        let mut request = request
-            .with_header("Content-Type", "application/json")
-            .with_header("Authorization", format!("Bearer {}", self.api_key));
-        if let Some(organization) = &self.organization {
-            request = request.with_header("openai-organization", organization);
+    pub fn build_request(&self, builder: RequestBuilder, is_beta: bool) -> Client {
+        let mut headers = HeaderMap::new();
+        headers.insert(CONTENT_TYPE, HeaderValue::from_static("application/json"));
+        headers.insert(
+            AUTHORIZATION,
+            HeaderValue::from_str(&format!("Bearer {}", self.api_key)).unwrap(),
+        );
+
+        if let Some(org) = &self.organization {
+            headers.insert("openai-organization", HeaderValue::from_str(org).unwrap());
         }
+
         if is_beta {
-            request = request.with_header("OpenAI-Beta", "assistants=v1");
+            headers.insert("OpenAI-Beta", HeaderValue::from_static("assistants=v1"));
         }
-        if let Some(proxy) = &self.proxy {
-            request = request.with_proxy(minreq::Proxy::new(proxy).unwrap());
-        }
-        request
+
+        client
     }
 
-    pub fn post<T: serde::ser::Serialize>(
-        &self,
-        path: &str,
-        params: &T,
-    ) -> Result<Response, APIError> {
-        let url = format!(
-            "{api_endpoint}{path}",
-            api_endpoint = self.api_endpoint,
-            path = path
-        );
-        let request = self.build_request(minreq::post(url), Self::is_beta(path));
-        let res = request.with_json(params).unwrap().send();
-        match res {
+    pub fn post<T: serde::ser::Serialize>(&self, path: &str, params: &T) -> APIResult<Response> {
+        let url = format!("{}{}", self.endpoint, path);
+        let client = Client::new();
+        let builder = self
+            .build_request(client.post(&url), Self::is_beta(path))
+            .await;
+        let response = request_builder.json(params).send().await;
+        match response {
             Ok(res) => {
-                if (200..=299).contains(&res.status_code) {
+                if res.status().is_success() {
                     Ok(res)
                 } else {
-                    Err(APIError {
-                        message: format!("{}: {}", res.status_code, res.as_str().unwrap()),
-                    })
+                    Err(APIError::GenericError(format!(
+                        "{}: {}",
+                        res.status(),
+                        res.text().await.unwrap_or_default()
+                    )))
                 }
             }
-            Err(e) => Err(self.new_error(e)),
+            Err(e) => Err(APIError::ReqwestError(e)),
         }
     }
 
-    pub fn get(&self, path: &str) -> Result<Response, APIError> {
-        let url = format!(
-            "{api_endpoint}{path}",
-            api_endpoint = self.api_endpoint,
-            path = path
-        );
-        let request = self.build_request(minreq::get(url), Self::is_beta(path));
-        let res = request.send();
-        match res {
+    pub async fn get(&self, path: &str) -> APIResult<Response> {
+        let url = format!("{}{}", self.endpoint, path);
+        let client = Client::new();
+        let builder = self
+            .build_request(client.get(&url), Self::is_beta(path))
+            .await;
+
+        let response = builder.send().await;
+        match response {
             Ok(res) => {
-                if (200..=299).contains(&res.status_code) {
+                if res.status().is_success() {
                     Ok(res)
                 } else {
-                    Err(APIError {
-                        message: format!("{}: {}", res.status_code, res.as_str().unwrap()),
-                    })
+                    Err(APIError::ResponseError(format!(
+                        "{}: {}",
+                        res.status(),
+                        res.text().await.unwrap_or_default()
+                    )))
                 }
             }
-            Err(e) => Err(self.new_error(e)),
+            Err(e) => Err(APIError::ReqwestError(e)),
         }
     }
 
-    pub fn delete(&self, path: &str) -> Result<Response, APIError> {
-        let url = format!(
-            "{api_endpoint}{path}",
-            api_endpoint = self.api_endpoint,
-            path = path
-        );
-        let request = self.build_request(minreq::delete(url), Self::is_beta(path));
-        let res = request.send();
-        match res {
+    pub async fn delete(&self, path: &str) -> APIResult<Response> {
+        let url = format!("{}{}", self.endpoint, path);
+        let client = Client::new();
+        let builder = self
+            .build_request(client.delete(&url), Self::is_beta(path))
+            .await;
+
+        let response = builder.send().await;
+        match response {
             Ok(res) => {
-                if (200..=299).contains(&res.status_code) {
+                if res.status().is_success() {
                     Ok(res)
                 } else {
-                    Err(APIError {
-                        message: format!("{}: {}", res.status_code, res.as_str().unwrap()),
-                    })
+                    Err(APIError::ResponseError(format!(
+                        "{}: {}",
+                        res.status(),
+                        res.text().await.unwrap_or_default()
+                    )))
                 }
             }
-            Err(e) => Err(self.new_error(e)),
+            Err(e) => Err(APIError::ReqwestError(e)),
         }
     }
 
-    pub fn completion(&self, req: CompletionRequest) -> Result<CompletionResponse, APIError> {
-        let res = self.post("/completions", &req)?;
-        let r = res.json::<CompletionResponse>();
-        match r {
+    pub async fn completion(&self, req: CompletionRequest) -> APIResult<CompletionResponse> {
+        let url = format!("{}{}", self.endpoint, "/completions");
+        let response = self.client.post(&url).json(&req).send().await?;
+
+        match response.json::<CompletionResponse>().await {
             Ok(mut r) => {
-                r.headers = Some(res.headers);
+                r.headers = Some(response.headers().clone());
                 Ok(r)
             }
-            Err(e) => Err(self.new_error(e)),
+            Err(e) => Err(APIError::JsonError(e)),
         }
     }
 
-    pub fn edit(&self, req: EditRequest) -> Result<EditResponse, APIError> {
-        let res = self.post("/edits", &req)?;
-        let r = res.json::<EditResponse>();
-        match r {
+    pub async fn edit(&self, req: EditRequest) -> APIResult<EditResponse> {
+        let url = format!("{}{}", self.endpoint, "/edits");
+        let response = self.client.post(&url).json(&req).send().await?;
+
+        match response.json::<EditResponse>().await {
             Ok(mut r) => {
-                r.headers = Some(res.headers);
+                r.headers = Some(response.headers().clone());
                 Ok(r)
             }
-            Err(e) => Err(self.new_error(e)),
+            Err(e) => Err(APIError::JsonError(e)),
         }
     }
 
-    pub fn image_generation(
+    pub async fn image_generation(
         &self,
         req: ImageGenerationRequest,
-    ) -> Result<ImageGenerationResponse, APIError> {
-        let res = self.post("/images/generations", &req)?;
-        let r = res.json::<ImageGenerationResponse>();
-        match r {
+    ) -> APIResult<ImageGenerationResponse> {
+        let url = format!("{}{}", self.endpoint, "/images/generations");
+        let response = self.client.post(&url).json(&req).send().await?;
+
+        match response.json::<ImageGenerationResponse>().await {
             Ok(mut r) => {
-                r.headers = Some(res.headers);
+                r.headers = Some(response.headers().clone());
                 Ok(r)
             }
-            Err(e) => Err(self.new_error(e)),
+            Err(e) => Err(APIError::JsonError(e)),
         }
     }
 
-    pub fn image_edit(&self, req: ImageEditRequest) -> Result<ImageEditResponse, APIError> {
-        let res = self.post("/images/edits", &req)?;
-        let r = res.json::<ImageEditResponse>();
-        match r {
+    pub async fn image_edit(&self, req: ImageEditRequest) -> APIResult<ImageEditResponse> {
+        let url = format!("{}{}", self.endpoint, "/images/edits");
+        let response = self.client.post(&url).json(&req).send().await?;
+
+        match response.json::<ImageEditResponse>().await {
             Ok(mut r) => {
-                r.headers = Some(res.headers);
+                r.headers = Some(response.headers().clone());
                 Ok(r)
             }
-            Err(e) => Err(self.new_error(e)),
+            Err(e) => Err(APIError::JsonError(e)),
         }
     }
 
-    pub fn image_variation(
+    pub async fn image_variation(
         &self,
         req: ImageVariationRequest,
-    ) -> Result<ImageVariationResponse, APIError> {
-        let res = self.post("/images/variations", &req)?;
-        let r = res.json::<ImageVariationResponse>();
-        match r {
+    ) -> APIResult<ImageVariationResponse> {
+        let url = format!("{}{}", self.endpoint, "/images/variations");
+        let response = self.client.post(&url).json(&req).send().await?;
+
+        match response.json::<ImageVariationResponse>().await {
             Ok(mut r) => {
-                r.headers = Some(res.headers);
+                r.headers = Some(response.headers().clone());
                 Ok(r)
             }
-            Err(e) => Err(self.new_error(e)),
+            Err(e) => Err(APIError::JsonError(e)),
         }
     }
 
-    pub fn embedding(&self, req: EmbeddingRequest) -> Result<EmbeddingResponse, APIError> {
-        let res = self.post("/embeddings", &req)?;
-        let r = res.json::<EmbeddingResponse>();
-        match r {
+    pub async fn embedding(&self, req: EmbeddingRequest) -> APIResult<EmbeddingResponse> {
+        let url = format!("{}{}", self.endpoint, "/embeddings");
+        let response = self.client.post(&url).json(&req).send().await?;
+
+        match response.json::<EmbeddingResponse>().await {
             Ok(mut r) => {
-                r.headers = Some(res.headers);
+                r.headers = Some(response.headers().clone());
                 Ok(r)
             }
-            Err(e) => Err(self.new_error(e)),
+            Err(e) => Err(APIError::JsonError(e)),
         }
     }
 
-    pub fn file_list(&self) -> Result<FileListResponse, APIError> {
-        let res = self.get("/files")?;
-        let r = res.json::<FileListResponse>();
-        match r {
+    pub async fn file_list(&self) -> APIResult<FileListResponse> {
+        let url = format!("{}{}", self.endpoint, "/files");
+        let response = self.client.get(&url).send().await?;
+
+        match response.json::<FileListResponse>().await {
             Ok(mut r) => {
-                r.headers = Some(res.headers);
+                r.headers = Some(response.headers().clone());
                 Ok(r)
             }
-            Err(e) => Err(self.new_error(e)),
+            Err(e) => Err(APIError::JsonError(e)),
         }
     }
 
-    pub fn file_upload(&self, req: FileUploadRequest) -> Result<FileUploadResponse, APIError> {
-        let res = self.post("/files", &req)?;
-        let r = res.json::<FileUploadResponse>();
-        match r {
+    pub async fn file_upload(&self, req: FileUploadRequest) -> APIResult<FileUploadResponse> {
+        let url = format!("{}{}", self.endpoint, "/files");
+        let response = self.client.post(&url).json(&req).send().await?;
+
+        match response.json::<FileUploadResponse>().await {
             Ok(mut r) => {
-                r.headers = Some(res.headers);
+                r.headers = Some(response.headers().clone());
                 Ok(r)
             }
-            Err(e) => Err(self.new_error(e)),
+            Err(e) => Err(APIError::JsonError(e)),
         }
     }
 
-    pub fn file_delete(&self, req: FileDeleteRequest) -> Result<FileDeleteResponse, APIError> {
-        let res = self.delete(&format!("{}/{}", "/files", req.file_id))?;
-        let r = res.json::<FileDeleteResponse>();
-        match r {
+    pub async fn file_delete(&self, req: FileDeleteRequest) -> APIResult<FileDeleteResponse> {
+        let url = format!("{}{}/{}", self.endpoint, "/files", req.file_id);
+        let response = self.client.delete(&url).send().await?;
+
+        match response.json::<FileDeleteResponse>().await {
             Ok(mut r) => {
-                r.headers = Some(res.headers);
+                r.headers = Some(response.headers().clone());
                 Ok(r)
             }
-            Err(e) => Err(self.new_error(e)),
+            Err(e) => Err(APIError::JsonError(e)),
         }
     }
 
-    pub fn file_retrieve(
-        &self,
-        req: FileRetrieveRequest,
-    ) -> Result<FileRetrieveResponse, APIError> {
-        let res = self.get(&format!("{}/{}", "/files", req.file_id))?;
-        let r = res.json::<FileRetrieveResponse>();
-        match r {
+    pub async fn file_retrieve(&self, req: FileRetrieveRequest) -> APIResult<FileRetrieveResponse> {
+        let url = format!("{}{}/{}", self.endpoint, "/files", req.file_id);
+        let response = self.client.get(&url).send().await?;
+
+        match response.json::<FileRetrieveResponse>().await {
             Ok(mut r) => {
-                r.headers = Some(res.headers);
+                r.headers = Some(response.headers().clone());
                 Ok(r)
             }
-            Err(e) => Err(self.new_error(e)),
+            Err(e) => Err(APIError::JsonError(e)),
         }
     }
 
-    pub fn file_retrieve_content(
+    pub async fn file_retrieve_content(
         &self,
         req: FileRetrieveContentRequest,
-    ) -> Result<FileRetrieveContentResponse, APIError> {
-        let res = self.get(&format!("{}/{}/content", "/files", req.file_id))?;
-        let r = res.json::<FileRetrieveContentResponse>();
-        match r {
+    ) -> APIResult<FileRetrieveContentResponse> {
+        let url = format!("{}{}/{}/content", self.endpoint, "/files", req.file_id);
+        let response = self.client.get(&url).send().await?;
+
+        match response.json::<FileRetrieveContentResponse>().await {
             Ok(mut r) => {
-                r.headers = Some(res.headers);
+                r.headers = Some(response.headers().clone());
                 Ok(r)
             }
-            Err(e) => Err(self.new_error(e)),
+            Err(e) => Err(APIError::JsonError(e)),
         }
     }
 
-    pub fn chat_completion(
+    pub async fn chat_completion(
         &self,
         req: ChatCompletionRequest,
-    ) -> Result<ChatCompletionResponse, APIError> {
-        let res = self.post("/chat/completions", &req)?;
-        let r = res.json::<ChatCompletionResponse>();
-        match r {
+    ) -> APIResult<ChatCompletionResponse> {
+        let url = format!("{}{}", self.api_endpoint, "/chat/completions");
+        let response = self.client.post(&url).json(&req).send().await?;
+
+        match response.json::<ChatCompletionResponse>().await {
             Ok(mut r) => {
-                r.headers = Some(res.headers);
+                r.headers = Some(response.headers().clone());
                 Ok(r)
             }
-            Err(e) => Err(self.new_error(e)),
+            Err(e) => Err(APIError::JsonError(e)),
         }
     }
 
-    pub fn audio_transcription(
+    pub async fn audio_transcription(
         &self,
         req: AudioTranscriptionRequest,
-    ) -> Result<AudioTranscriptionResponse, APIError> {
-        let res = self.post("/audio/transcriptions", &req)?;
-        let r = res.json::<AudioTranscriptionResponse>();
-        match r {
+    ) -> APIResult<AudioTranscriptionResponse> {
+        let url = format!("{}{}", self.api_endpoint, "/audio/transcriptions");
+        let response = self.client.post(&url).json(&req).send().await?;
+
+        match response.json::<AudioTranscriptionResponse>().await {
             Ok(mut r) => {
-                r.headers = Some(res.headers);
+                r.headers = Some(response.headers().clone());
                 Ok(r)
             }
-            Err(e) => Err(self.new_error(e)),
+            Err(e) => Err(APIError::JsonError(e)),
         }
     }
 
-    pub fn audio_translation(
+    pub async fn audio_translation(
         &self,
         req: AudioTranslationRequest,
-    ) -> Result<AudioTranslationResponse, APIError> {
-        let res = self.post("/audio/translations", &req)?;
-        let r = res.json::<AudioTranslationResponse>();
-        match r {
+    ) -> APIResult<AudioTranslationResponse> {
+        let url = format!("{}{}", self.api_endpoint, "/audio/translations");
+        let response = self.client.post(&url).json(&req).send().await?;
+
+        match response.json::<AudioTranslationResponse>().await {
             Ok(mut r) => {
-                r.headers = Some(res.headers);
+                r.headers = Some(response.headers().clone());
                 Ok(r)
             }
-            Err(e) => Err(self.new_error(e)),
+            Err(e) => Err(APIError::JsonError(e)),
         }
     }
 
-    pub fn audio_speech(&self, req: AudioSpeechRequest) -> Result<AudioSpeechResponse, APIError> {
-        let res = self.post("/audio/speech", &req)?;
-        let bytes = res.as_bytes();
-        let path = req.output.as_str();
-        let path = Path::new(path);
+    pub async fn audio_speech(&self, req: AudioSpeechRequest) -> APIResult<AudioSpeechResponse> {
+        let url = format!("{}{}", self.api_endpoint, "/audio/speech");
+        let response = self.client.post(&url).json(&req).send().await?;
+
+        let bytes = response.bytes().await?;
+        let path = Path::new(&req.output);
         if let Some(parent) = path.parent() {
-            match create_dir_all(parent) {
-                Ok(_) => {}
-                Err(e) => {
-                    return Err(APIError {
-                        message: e.to_string(),
-                    })
-                }
-            }
+            create_dir_all(parent).await?;
         }
-        match File::create(path) {
-            Ok(mut file) => match file.write_all(bytes) {
-                Ok(_) => {}
-                Err(e) => {
-                    return Err(APIError {
-                        message: e.to_string(),
-                    })
-                }
-            },
-            Err(e) => {
-                return Err(APIError {
-                    message: e.to_string(),
-                })
-            }
-        }
+
+        let mut file = File::create(path).await?;
+        file.write_all(&bytes).await?;
+
         Ok(AudioSpeechResponse {
             result: true,
-            headers: Some(res.headers),
+            headers: Some(response.headers().clone()),
         })
     }
 
-    pub fn create_fine_tuning_job(
+    pub async fn create_fine_tuning_job(
         &self,
         req: CreateFineTuningJobRequest,
-    ) -> Result<FineTuningJobObject, APIError> {
-        let res = self.post("/fine_tuning/jobs", &req)?;
-        let r = res.json::<FineTuningJobObject>();
-        match r {
+    ) -> APIResult<FineTuningJobObject> {
+        let url = format!("{}{}", self.api_endpoint, "/fine_tuning/jobs");
+        let response = self.client.post(&url).json(&req).send().await?;
+
+        match response.json::<FineTuningJobObject>().await {
             Ok(mut r) => {
-                r.headers = Some(res.headers);
+                r.headers = Some(response.headers().clone());
                 Ok(r)
             }
-            Err(e) => Err(self.new_error(e)),
+            Err(e) => Err(APIError::JsonError(e)),
         }
     }
 
-    pub fn list_fine_tuning_jobs(
+    pub async fn list_fine_tuning_jobs(
         &self,
-    ) -> Result<FineTuningPagination<FineTuningJobObject>, APIError> {
-        let res = self.get("/fine_tuning/jobs")?;
-        let r = res.json::<FineTuningPagination<FineTuningJobObject>>();
-        match r {
+    ) -> APIResult<FineTuningPagination<FineTuningJobObject>> {
+        let url = format!("{}{}", self.api_endpoint, "/fine_tuning/jobs");
+        let response = self.client.get(&url).send().await?;
+
+        match response
+            .json::<FineTuningPagination<FineTuningJobObject>>()
+            .await
+        {
             Ok(mut r) => {
-                r.headers = Some(res.headers);
+                r.headers = Some(response.headers().clone());
                 Ok(r)
             }
-            Err(e) => Err(self.new_error(e)),
+            Err(e) => Err(APIError::JsonError(e)),
         }
     }
 
-    pub fn list_fine_tuning_job_events(
+    pub async fn list_fine_tuning_job_events(
         &self,
         req: ListFineTuningJobEventsRequest,
-    ) -> Result<FineTuningPagination<FineTuningJobEvent>, APIError> {
-        let res = self.get(&format!(
-            "/fine_tuning/jobs/{}/events",
-            req.fine_tuning_job_id
-        ))?;
-        let r = res.json::<FineTuningPagination<FineTuningJobEvent>>();
-        match r {
+    ) -> APIResult<FineTuningPagination<FineTuningJobEvent>> {
+        let url = format!(
+            "{}{}{}/events",
+            self.api_endpoint, "/fine_tuning/jobs/", req.fine_tuning_job_id
+        );
+        let response = self.client.get(&url).send().await?;
+
+        match response
+            .json::<FineTuningPagination<FineTuningJobEvent>>()
+            .await
+        {
             Ok(mut r) => {
-                r.headers = Some(res.headers);
+                r.headers = Some(response.headers().clone());
                 Ok(r)
             }
-            Err(e) => Err(self.new_error(e)),
+            Err(e) => Err(APIError::JsonError(e)),
         }
     }
 
-    pub fn retrieve_fine_tuning_job(
+    pub async fn retrieve_fine_tuning_job(
         &self,
         req: RetrieveFineTuningJobRequest,
-    ) -> Result<FineTuningJobObject, APIError> {
-        let res = self.get(&format!("/fine_tuning/jobs/{}", req.fine_tuning_job_id))?;
-        let r = res.json::<FineTuningJobObject>();
-        match r {
+    ) -> APIResult<FineTuningJobObject> {
+        let url = format!(
+            "{}{}{}",
+            self.api_endpoint, "/fine_tuning/jobs/", req.fine_tuning_job_id
+        );
+        let response = self.client.get(&url).send().await?;
+
+        match response.json::<FineTuningJobObject>().await {
             Ok(mut r) => {
-                r.headers = Some(res.headers);
+                r.headers = Some(response.headers().clone());
                 Ok(r)
             }
-            Err(e) => Err(self.new_error(e)),
+            Err(e) => Err(APIError::JsonError(e)),
         }
     }
 
-    pub fn cancel_fine_tuning_job(
+    pub async fn cancel_fine_tuning_job(
         &self,
         req: CancelFineTuningJobRequest,
-    ) -> Result<FineTuningJobObject, APIError> {
-        let res = self.post(
-            &format!("/fine_tuning/jobs/{}/cancel", req.fine_tuning_job_id),
-            &req,
-        )?;
-        let r = res.json::<FineTuningJobObject>();
-        match r {
+    ) -> APIResult<FineTuningJobObject> {
+        let url = format!(
+            "{}{}{}/cancel",
+            self.api_endpoint, "/fine_tuning/jobs/", req.fine_tuning_job_id
+        );
+        let response = self.client.post(&url).json(&req).send().await?;
+
+        match response.json::<FineTuningJobObject>().await {
             Ok(mut r) => {
-                r.headers = Some(res.headers);
+                r.headers = Some(response.headers().clone());
                 Ok(r)
             }
-            Err(e) => Err(self.new_error(e)),
+            Err(e) => Err(APIError::JsonError(e)),
         }
     }
 
-    pub fn create_moderation(
+    pub async fn create_moderation(
         &self,
         req: CreateModerationRequest,
-    ) -> Result<CreateModerationResponse, APIError> {
-        let res = self.post("/moderations", &req)?;
-        let r = res.json::<CreateModerationResponse>();
-        match r {
+    ) -> APIResult<CreateModerationResponse> {
+        let url = format!("{}{}", self.api_endpoint, "/moderations");
+        let response = self.client.post(&url).json(&req).send().await?;
+
+        match response.json::<CreateModerationResponse>().await {
             Ok(mut r) => {
-                r.headers = Some(res.headers);
+                r.headers = Some(response.headers().clone());
                 Ok(r)
             }
-            Err(e) => Err(self.new_error(e)),
+            Err(e) => Err(APIError::JsonError(e)),
         }
     }
 
-    pub fn create_assistant(&self, req: AssistantRequest) -> Result<AssistantObject, APIError> {
-        let res = self.post("/assistants", &req)?;
-        let r = res.json::<AssistantObject>();
-        match r {
+    pub async fn create_assistant(&self, req: AssistantRequest) -> APIResult<AssistantObject> {
+        let url = format!("{}{}", self.api_endpoint, "/assistants");
+        let response = self.client.post(&url).json(&req).send().await?;
+
+        match response.json::<AssistantObject>().await {
             Ok(mut r) => {
-                r.headers = Some(res.headers);
+                r.headers = Some(response.headers().clone());
                 Ok(r)
             }
-            Err(e) => Err(self.new_error(e)),
+            Err(e) => Err(APIError::JsonError(e)),
         }
     }
 
-    pub fn retrieve_assistant(&self, assistant_id: String) -> Result<AssistantObject, APIError> {
-        let res = self.get(&format!("/assistants/{}", assistant_id))?;
-        let r = res.json::<AssistantObject>();
-        match r {
+    pub async fn retrieve_assistant(&self, assistant_id: String) -> APIResult<AssistantObject> {
+        let url = format!("{}{}{}", self.api_endpoint, "/assistants/", assistant_id);
+        let response = self.client.get(&url).send().await?;
+
+        match response.json::<AssistantObject>().await {
             Ok(mut r) => {
-                r.headers = Some(res.headers);
+                r.headers = Some(response.headers().clone());
                 Ok(r)
             }
-            Err(e) => Err(self.new_error(e)),
+            Err(e) => Err(APIError::JsonError(e)),
         }
     }
 
-    pub fn modify_assistant(
+    pub async fn modify_assistant(
         &self,
         assistant_id: String,
         req: AssistantRequest,
-    ) -> Result<AssistantObject, APIError> {
-        let res = self.post(&format!("/assistants/{}", assistant_id), &req)?;
-        let r = res.json::<AssistantObject>();
-        match r {
+    ) -> APIResult<AssistantObject> {
+        let url = format!("{}{}{}", self.api_endpoint, "/assistants/", assistant_id);
+        let response = self.client.post(&url).json(&req).send().await?;
+
+        match response.json::<AssistantObject>().await {
             Ok(mut r) => {
-                r.headers = Some(res.headers);
+                r.headers = Some(response.headers().clone());
                 Ok(r)
             }
-            Err(e) => Err(self.new_error(e)),
+            Err(e) => Err(APIError::JsonError(e)),
         }
     }
 
-    pub fn delete_assistant(&self, assistant_id: String) -> Result<DeletionStatus, APIError> {
-        let res = self.delete(&format!("/assistants/{}", assistant_id))?;
-        let r = res.json::<DeletionStatus>();
-        match r {
+    pub async fn delete_assistant(&self, assistant_id: String) -> APIResult<DeletionStatus> {
+        let url = format!("{}{}{}", self.api_endpoint, "/assistants/", assistant_id);
+        let response = self.client.delete(&url).send().await?;
+
+        match response.json::<DeletionStatus>().await {
             Ok(mut r) => {
-                r.headers = Some(res.headers);
+                r.headers = Some(response.headers().clone());
                 Ok(r)
             }
-            Err(e) => Err(self.new_error(e)),
+            Err(e) => Err(APIError::JsonError(e)),
         }
     }
 
-    pub fn list_assistant(
+    pub async fn list_assistant(
         &self,
         limit: Option<i64>,
         order: Option<String>,
         after: Option<String>,
         before: Option<String>,
-    ) -> Result<ListAssistant, APIError> {
-        let mut url = "/assistants".to_owned();
-        url = Self::query_params(limit, order, after, before, url);
-        let res = self.get(&url)?;
-        let r = res.json::<ListAssistant>();
-        match r {
+    ) -> APIResult<ListAssistant> {
+        let base_url = format!("{}{}", self.api_endpoint, "/assistants");
+        let mut url = self.query_params(limit, order, after, before, base_url);
+        let response = self.client.get(&url).send().await?;
+
+        match response.json::<ListAssistant>().await {
             Ok(mut r) => {
-                r.headers = Some(res.headers);
+                r.headers = Some(response.headers().clone());
                 Ok(r)
             }
-            Err(e) => Err(self.new_error(e)),
+            Err(e) => Err(APIError::JsonError(e)),
         }
     }
 
-    pub fn create_assistant_file(
+    pub async fn create_assistant_file(
         &self,
         assistant_id: String,
         req: AssistantFileRequest,
-    ) -> Result<AssistantFileObject, APIError> {
-        let res = self.post(&format!("/assistants/{}/files", assistant_id), &req)?;
-        let r = res.json::<AssistantFileObject>();
-        match r {
+    ) -> APIResult<AssistantFileObject> {
+        let url = format!(
+            "{}{}{}/files",
+            self.api_endpoint, "/assistants/", assistant_id
+        );
+        let response = self.client.post(&url).json(&req).send().await?;
+
+        match response.json::<AssistantFileObject>().await {
             Ok(mut r) => {
-                r.headers = Some(res.headers);
+                r.headers = Some(response.headers().clone());
                 Ok(r)
             }
-            Err(e) => Err(self.new_error(e)),
+            Err(e) => Err(APIError::JsonError(e)),
         }
     }
+
+    // TODO: FINISH
 
     pub fn retrieve_assistant_file(
         &self,
@@ -591,7 +620,7 @@ impl Client {
                 r.headers = Some(res.headers);
                 Ok(r)
             }
-            Err(e) => Err(self.new_error(e)),
+            Err(e) => Err(APIError::GenericError(e)),
         }
     }
 
@@ -607,7 +636,7 @@ impl Client {
                 r.headers = Some(res.headers);
                 Ok(r)
             }
-            Err(e) => Err(self.new_error(e)),
+            Err(e) => Err(APIError::GenericError(e)),
         }
     }
 
@@ -628,7 +657,7 @@ impl Client {
                 r.headers = Some(res.headers);
                 Ok(r)
             }
-            Err(e) => Err(self.new_error(e)),
+            Err(e) => Err(APIError::GenericError(e)),
         }
     }
 
@@ -640,7 +669,7 @@ impl Client {
                 r.headers = Some(res.headers);
                 Ok(r)
             }
-            Err(e) => Err(self.new_error(e)),
+            Err(e) => Err(APIError::GenericError(e)),
         }
     }
 
@@ -652,7 +681,7 @@ impl Client {
                 r.headers = Some(res.headers);
                 Ok(r)
             }
-            Err(e) => Err(self.new_error(e)),
+            Err(e) => Err(APIError::GenericError(e)),
         }
     }
 
@@ -668,7 +697,7 @@ impl Client {
                 r.headers = Some(res.headers);
                 Ok(r)
             }
-            Err(e) => Err(self.new_error(e)),
+            Err(e) => Err(APIError::GenericError(e)),
         }
     }
 
@@ -680,7 +709,7 @@ impl Client {
                 r.headers = Some(res.headers);
                 Ok(r)
             }
-            Err(e) => Err(self.new_error(e)),
+            Err(e) => Err(APIError::GenericError(e)),
         }
     }
 
@@ -696,7 +725,7 @@ impl Client {
                 r.headers = Some(res.headers);
                 Ok(r)
             }
-            Err(e) => Err(self.new_error(e)),
+            Err(e) => Err(APIError::GenericError(e)),
         }
     }
 
@@ -712,7 +741,7 @@ impl Client {
                 r.headers = Some(res.headers);
                 Ok(r)
             }
-            Err(e) => Err(self.new_error(e)),
+            Err(e) => Err(APIError::GenericError(e)),
         }
     }
 
@@ -732,7 +761,7 @@ impl Client {
                 r.headers = Some(res.headers);
                 Ok(r)
             }
-            Err(e) => Err(self.new_error(e)),
+            Err(e) => Err(APIError::GenericError(e)),
         }
     }
 
@@ -744,7 +773,7 @@ impl Client {
                 r.headers = Some(res.headers);
                 Ok(r)
             }
-            Err(e) => Err(self.new_error(e)),
+            Err(e) => Err(APIError::GenericError(e)),
         }
     }
 
@@ -764,7 +793,7 @@ impl Client {
                 r.headers = Some(res.headers);
                 Ok(r)
             }
-            Err(e) => Err(self.new_error(e)),
+            Err(e) => Err(APIError::GenericError(e)),
         }
     }
 
@@ -786,7 +815,7 @@ impl Client {
                 r.headers = Some(res.headers);
                 Ok(r)
             }
-            Err(e) => Err(self.new_error(e)),
+            Err(e) => Err(APIError::GenericError(e)),
         }
     }
 
@@ -802,7 +831,7 @@ impl Client {
                 r.headers = Some(res.headers);
                 Ok(r)
             }
-            Err(e) => Err(self.new_error(e)),
+            Err(e) => Err(APIError::GenericError(e)),
         }
     }
 
@@ -814,7 +843,7 @@ impl Client {
                 r.headers = Some(res.headers);
                 Ok(r)
             }
-            Err(e) => Err(self.new_error(e)),
+            Err(e) => Err(APIError::GenericError(e)),
         }
     }
 
@@ -831,7 +860,7 @@ impl Client {
                 r.headers = Some(res.headers);
                 Ok(r)
             }
-            Err(e) => Err(self.new_error(e)),
+            Err(e) => Err(APIError::GenericError(e)),
         }
     }
 
@@ -852,7 +881,7 @@ impl Client {
                 r.headers = Some(res.headers);
                 Ok(r)
             }
-            Err(e) => Err(self.new_error(e)),
+            Err(e) => Err(APIError::GenericError(e)),
         }
     }
 
@@ -868,7 +897,7 @@ impl Client {
                 r.headers = Some(res.headers);
                 Ok(r)
             }
-            Err(e) => Err(self.new_error(e)),
+            Err(e) => Err(APIError::GenericError(e)),
         }
     }
 
@@ -883,7 +912,7 @@ impl Client {
                 r.headers = Some(res.headers);
                 Ok(r)
             }
-            Err(e) => Err(self.new_error(e)),
+            Err(e) => Err(APIError::GenericError(e)),
         }
     }
 
@@ -903,7 +932,7 @@ impl Client {
                 r.headers = Some(res.headers);
                 Ok(r)
             }
-            Err(e) => Err(self.new_error(e)),
+            Err(e) => Err(APIError::GenericError(e)),
         }
     }
 
@@ -925,13 +954,7 @@ impl Client {
                 r.headers = Some(res.headers);
                 Ok(r)
             }
-            Err(e) => Err(self.new_error(e)),
-        }
-    }
-
-    fn new_error(&self, err: minreq::Error) -> APIError {
-        APIError {
-            message: err.to_string(),
+            Err(e) => Err(APIError::GenericError(e)),
         }
     }
 

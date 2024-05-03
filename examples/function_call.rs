@@ -1,9 +1,9 @@
 use openai_rst::{
-    api::Client,
     chat_completion::{
         ChatCompletionMessage, ChatCompletionRequest, Content, FinishReason, Function,
         FunctionParameters, JSONSchemaDefine, JSONSchemaType, Tool, ToolChoiceType, ToolType,
     },
+    client::Client,
     common::MessageRole,
     models::{Model, GPT3},
 };

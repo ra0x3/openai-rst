@@ -1,15 +1,10 @@
-use std::error::Error;
 use std::fmt;
+use thiserror::Error;
 
-#[derive(Debug)]
-pub struct APIError {
-    pub message: String,
+#[derive(Debug, Error)]
+pub enum APIError {
+    #[error("APIError: {0}")]
+    ReqwestError(#[from] reqwest::Error),
+    #[error("GenericError: {0}")]
+    GenericError(String),
 }
-
-impl fmt::Display for APIError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "APIError: {}", self.message)
-    }
-}
-
-impl Error for APIError {}

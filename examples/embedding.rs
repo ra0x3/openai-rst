@@ -1,5 +1,5 @@
 use openai_rst::{
-    api::Client,
+    client::Client,
     embedding::EmbeddingRequest,
     models::{EmbeddingsModels, Model},
 };
@@ -20,4 +20,4 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-// OPENAI_API_KEY=xxxx cargo run --package openai-api-rs --example embedding
+// OPENAI_API_KEY=xxxx cargo run --package openai-rst --example embedding

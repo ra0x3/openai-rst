@@ -1,14 +1,23 @@
 use serde::{Deserialize, Serialize};
+use strum::{AsRefStr, Display, EnumString};
 
-#[derive(Debug, Deserialize, Serialize, Clone, PartialEq, Eq)]
+#[derive(Debug, Deserialize, EnumString, Serialize, Clone, PartialEq, Eq, AsRefStr, Display)]
 pub enum MessageRole {
+    #[serde(rename = "user")]
+    #[strum(serialize = "user")]
     User,
+    #[serde(rename = "system")]
+    #[strum(serialize = "system")]
     System,
+    #[serde(rename = "assistant")]
+    #[strum(serialize = "assistant")]
     Assistant,
+    #[serde(rename = "function")]
+    #[strum(serialize = "function")]
     Function,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone, PartialEq, Eq)]
 pub struct Usage {
     pub prompt_tokens: i32,
     pub completion_tokens: i32,
