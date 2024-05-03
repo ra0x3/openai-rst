@@ -1,6 +1,6 @@
 use openai_rst::{
-    api::Client,
     chat_completion::{self, ChatCompletionRequest},
+    client::Client,
     common::MessageRole,
     models::{Model, GPT3},
 };
@@ -16,7 +16,8 @@ fn get_coin_price(coin: &str) -> f64 {
     }
 }
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let client = Client::new(env::var("OPENAI_API_KEY").unwrap().to_string());
 
     let mut properties = HashMap::new();
@@ -50,7 +51,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         },
     }]);
 
-    let result = client.chat_completion(req)?;
+    let result = client.chat_completion(req).await?;
 
     match result.choices[0].finish_reason {
         None => {
@@ -101,7 +102,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     ],
                 );
 
-                let result = client.chat_completion(req)?;
+                let result = client.chat_completion(req).await?;
                 println!("{:?}", result.choices[0].message.content);
             }
         }
@@ -115,4 +116,4 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-// OPENAI_API_KEY=xxxx cargo run --package openai-api-rs --example function_call_role
+// OPENAI_API_KEY=xxxx cargo run --package openai-rst --example function_call_role

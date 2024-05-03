@@ -1,4 +1,4 @@
-⚠️ Forked from [openai-rs-api](https://github.com/dongri/openai-api-rs).
+⚠️ Forked from [openai-rs-api](https://github.com/dongri/openai-rst).
 
 # OpenAI API client library for Rust (unofficial)
 The OpenAI API client Rust library provides convenient access to the OpenAI API from Rust applications.
@@ -50,7 +50,7 @@ $ export OPENAI_API_BASE=https://api.openai.com/v1
 
 ## Example of chat completion
 ```rust
-use openai_rst::{chat_completion::ChatCompletionRequest, api::Client, models::{Model, GPT4}};
+use openai_rst::{chat_completion::ChatCompletionRequest, client::Client, models::{Model, GPT4}};
 use std::env;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -72,7 +72,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 ```
-More Examples: [examples](https://github.com/dongri/openai-api-rs/tree/main/examples)
+More Examples: [examples](https://github.com/dongri/openai-rst/tree/main/examples)
 
 Check out the [full API documentation](https://platform.openai.com/docs/api-reference/completions) for examples of all the available functions.
 
@@ -90,4 +90,4 @@ Check out the [full API documentation](https://platform.openai.com/docs/api-refe
 - [x] [Assistants](https://platform.openai.com/docs/assistants/overview)
 
 ## License
-This project is licensed under [MIT license](https://github.com/dongri/openai-api-rs/blob/main/LICENSE).
+This project is licensed under [MIT license](https://github.com/dongri/openai-rst/blob/main/LICENSE).

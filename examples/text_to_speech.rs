@@ -1,8 +1,9 @@
-use openai_rst::api::Client;
 use openai_rst::audio::{self, AudioSpeechRequest, TTS_1};
+use openai_rst::client::Client;
 use std::env;
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let client = Client::new(env::var("OPENAI_API_KEY").unwrap().to_string());
 
     let req = AudioSpeechRequest::new(
@@ -12,10 +13,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         String::from("problem.mp3"),
     );
 
-    let result = client.audio_speech(req)?;
+    let result = client.audio_speech(req).await?;
     println!("{:?}", result);
 
     Ok(())
 }
 
-// OPENAI_API_KEY=xxxx cargo run --package openai-api-rs --example text_to_speech
+// OPENAI_API_KEY=xxxx cargo run --package openai-rst --example text_to_speech

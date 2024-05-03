@@ -1,15 +1,15 @@
-use std::error::Error;
-use std::fmt;
+use async_std::io::Error as AsyncError;
+use serde_json::Error as SerdeError;
+use thiserror::Error;
 
-#[derive(Debug)]
-pub struct APIError {
-    pub message: String,
+#[derive(Debug, Error)]
+pub enum APIError {
+    #[error("APIError: {0}")]
+    ReqwestError(#[from] reqwest::Error),
+    #[error("GenericError: {0}")]
+    GenericError(String),
+    #[error("SerdeError: {0}")]
+    SerdeError(#[from] SerdeError),
+    #[error("AsyncError: {0}")]
+    AsyncError(#[from] AsyncError),
 }
-
-impl fmt::Display for APIError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "APIError: {}", self.message)
-    }
-}
-
-impl Error for APIError {}

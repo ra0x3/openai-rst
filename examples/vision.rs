@@ -1,12 +1,13 @@
 use openai_rst::{
-    api::Client,
     chat_completion::{self, ChatCompletionRequest},
+    client::Client,
     common::MessageRole,
     models::{Model, GPT4},
 };
 use std::env;
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let client = Client::new(env::var("OPENAI_API_KEY").unwrap().to_string());
 
     let req = ChatCompletionRequest::new(
@@ -33,10 +34,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }],
     );
 
-    let result = client.chat_completion(req)?;
+    let result = client.chat_completion(req).await?;
     println!("{:?}", result.choices[0].message.content);
 
     Ok(())
 }
 
-// OPENAI_API_KEY=xxxx cargo run --package openai-api-rs --example vision
+// OPENAI_API_KEY=xxxx cargo run --package openai-rst --example vision

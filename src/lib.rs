@@ -1,7 +1,7 @@
-pub mod api;
 pub mod assistant;
 pub mod audio;
 pub mod chat_completion;
+pub mod client;
 pub mod common;
 pub mod completion;
 pub mod edit;
