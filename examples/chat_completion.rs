@@ -19,7 +19,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }],
     );
 
-    let result = client.chat_completion(req)?.await;
+    let result = client.chat_completion(req).await?;
     println!("Content: {:?}", result.message_content());
     println!("Response Headers: {:?}", result.headers);
 

@@ -5,7 +5,8 @@ use openai_rst::{
 };
 use std::env;
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let client = Client::new(env::var("OPENAI_API_KEY").unwrap().to_string());
 
     let mut req = EmbeddingRequest::new(
@@ -14,7 +15,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     );
     req.dimensions = Some(10);
 
-    let result = client.embedding(req)?;
+    let result = client.embedding(req).await?;
     println!("{:?}", result.data);
 
     Ok(())

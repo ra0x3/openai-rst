@@ -5,7 +5,8 @@ use openai_rst::{
 };
 use std::env;
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let client = Client::new(env::var("OPENAI_API_KEY").unwrap().to_string());
 
     let req = CompletionRequest::new(
@@ -19,7 +20,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     .presence_penalty(0.6)
     .frequency_penalty(0.0);
 
-    let result = client.completion(req)?;
+    let result = client.completion(req).await?;
     println!("{:}", result.choices[0].text);
 
     Ok(())

@@ -10,6 +10,7 @@ description = "OpenAI API Rust client"
 repository = "https://github.com/ra0x3/openai-rst"
 
 [dependencies]
+async-std = { version = "1.12" }
 minreq = { version = "2", default-features = false, features = ["https-rustls", "json-using-serde", "proxy"] }
 reqwest = { version = "0.11", default-features = false, features = ["json", "rustls-tls", "multipart", "stream"] }
 serde = { version = "1.0", default-features = false, features = ["derive"] }
