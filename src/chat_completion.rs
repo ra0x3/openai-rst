@@ -180,10 +180,8 @@ pub struct ChatCompletionResponse {
 }
 
 impl ChatCompletionResponse {
-    pub fn message_content(&self) -> Option<&String> {
-        self.choices.last().and_then(|choice| {
-            return choice.message.content.as_ref();
-        })
+    pub fn get_choice(&self) -> String {
+        self.choices[0].message.content.clone().unwrap()
     }
 }
 

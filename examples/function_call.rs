@@ -1,7 +1,8 @@
 use openai_rst::{
     chat_completion::{
         ChatCompletionMessage, ChatCompletionRequest, Content, FinishReason, Function,
-        FunctionParameters, JSONSchemaDefine, JSONSchemaType, Tool, ToolChoiceType, ToolType,
+        FunctionParameters, JSONSchemaDefine, JSONSchemaType, Tool, ToolChoiceType,
+        ToolType,
     },
     client::Client,
     common::MessageRole,

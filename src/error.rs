@@ -6,8 +6,8 @@ use thiserror::Error;
 pub enum APIError {
     #[error("APIError: {0}")]
     ReqwestError(#[from] reqwest::Error),
-    #[error("GenericError: {0}")]
-    GenericError(String),
+    #[error("Unknown: {0}")]
+    Unknown(String),
     #[error("SerdeError: {0}")]
     SerdeError(#[from] SerdeError),
     #[error("AsyncError: {0}")]

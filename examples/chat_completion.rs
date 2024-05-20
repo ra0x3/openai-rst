@@ -11,7 +11,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let client = Client::new(env::var("OPENAI_API_KEY").unwrap().to_string());
 
     let req = ChatCompletionRequest::new(
-        Model::GPT4(GPT4::GPT4),
+        Model::GPT4(GPT4::GPT4o),
         vec![ChatCompletionMessage {
             role: MessageRole::User,
             content: Content::Text(String::from("What is bitcoin?")),
@@ -20,7 +20,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     );
 
     let result = client.chat_completion(req).await?;
-    println!("Content: {:?}", result.message_content());
+    println!("Content: {:?}", result.get_choice());
     println!("Response Headers: {:?}", result.headers);
 
     Ok(())

@@ -1,40 +1,42 @@
-use crate::assistant::{
-    AssistantFileObject, AssistantFileRequest, AssistantObject, AssistantRequest, DeletionStatus,
-    ListAssistant, ListAssistantFile,
+use crate::{
+    assistant::{
+        AssistantFileObject, AssistantFileRequest, AssistantObject, AssistantRequest,
+        DeletionStatus, ListAssistant, ListAssistantFile,
+    },
+    audio::{
+        AudioSpeechRequest, AudioSpeechResponse, AudioTranscriptionRequest,
+        AudioTranscriptionResponse, AudioTranslationRequest, AudioTranslationResponse,
+    },
+    chat_completion::{ChatCompletionRequest, ChatCompletionResponse},
+    completion::{CompletionRequest, CompletionResponse},
+    edit::{EditRequest, EditResponse},
+    embedding::{EmbeddingRequest, EmbeddingResponse},
+    error::APIError,
+    file::{
+        FileDeleteRequest, FileDeleteResponse, FileListResponse,
+        FileRetrieveContentRequest, FileRetrieveContentResponse, FileRetrieveRequest,
+        FileRetrieveResponse, FileUploadRequest, FileUploadResponse,
+    },
+    fine_tuning::{
+        CancelFineTuningJobRequest, CreateFineTuningJobRequest, FineTuningJobEvent,
+        FineTuningJobObject, FineTuningPagination, ListFineTuningJobEventsRequest,
+        RetrieveFineTuningJobRequest,
+    },
+    image::{
+        ImageEditRequest, ImageEditResponse, ImageGenerationRequest,
+        ImageGenerationResponse, ImageVariationRequest, ImageVariationResponse,
+    },
+    message::{
+        CreateMessageRequest, ListMessage, ListMessageFile, MessageFileObject,
+        MessageObject, ModifyMessageRequest,
+    },
+    moderation::{CreateModerationRequest, CreateModerationResponse},
+    run::{
+        CreateRunRequest, CreateThreadAndRunRequest, ListRun, ListRunStep,
+        ModifyRunRequest, RunObject, RunStepObject,
+    },
+    thread::{CreateThreadRequest, ModifyThreadRequest, ThreadObject},
 };
-use crate::audio::{
-    AudioSpeechRequest, AudioSpeechResponse, AudioTranscriptionRequest, AudioTranscriptionResponse,
-    AudioTranslationRequest, AudioTranslationResponse,
-};
-use crate::chat_completion::{ChatCompletionRequest, ChatCompletionResponse};
-use crate::completion::{CompletionRequest, CompletionResponse};
-use crate::edit::{EditRequest, EditResponse};
-use crate::embedding::{EmbeddingRequest, EmbeddingResponse};
-use crate::error::APIError;
-use crate::file::{
-    FileDeleteRequest, FileDeleteResponse, FileListResponse, FileRetrieveContentRequest,
-    FileRetrieveContentResponse, FileRetrieveRequest, FileRetrieveResponse, FileUploadRequest,
-    FileUploadResponse,
-};
-use crate::fine_tuning::{
-    CancelFineTuningJobRequest, CreateFineTuningJobRequest, FineTuningJobEvent,
-    FineTuningJobObject, FineTuningPagination, ListFineTuningJobEventsRequest,
-    RetrieveFineTuningJobRequest,
-};
-use crate::image::{
-    ImageEditRequest, ImageEditResponse, ImageGenerationRequest, ImageGenerationResponse,
-    ImageVariationRequest, ImageVariationResponse,
-};
-use crate::message::{
-    CreateMessageRequest, ListMessage, ListMessageFile, MessageFileObject, MessageObject,
-    ModifyMessageRequest,
-};
-use crate::moderation::{CreateModerationRequest, CreateModerationResponse};
-use crate::run::{
-    CreateRunRequest, CreateThreadAndRunRequest, ListRun, ListRunStep, ModifyRunRequest, RunObject,
-    RunStepObject,
-};
-use crate::thread::{CreateThreadRequest, ModifyThreadRequest, ThreadObject};
 use async_std::{
     fs::{create_dir_all, File},
     io::WriteExt,
@@ -44,6 +46,7 @@ use reqwest::{
     Client as ReqwestClient, Response,
 };
 use std::{collections::HashMap, path::Path};
+use tracing::error;
 
 const API_URL_V1: &str = "https://api.openai.com/v1";
 
@@ -64,7 +67,8 @@ fn headermap_to_map(headers: &HeaderMap) -> HashMap<String, String> {
 
 impl Client {
     pub fn new(api_key: String) -> Self {
-        let endpoint = std::env::var("OPENAI_API_BASE").unwrap_or_else(|_| API_URL_V1.to_owned());
+        let endpoint =
+            std::env::var("OPENAI_API_BASE").unwrap_or_else(|_| API_URL_V1.to_owned());
         let mut headers = HeaderMap::new();
         headers.insert(CONTENT_TYPE, HeaderValue::from_static("application/json"));
         headers.insert(
@@ -96,7 +100,7 @@ impl Client {
                 if res.status().is_success() {
                     Ok(res)
                 } else {
-                    Err(APIError::GenericError(format!(
+                    Err(APIError::Unknown(format!(
                         "{}: {}",
                         res.status(),
                         res.text().await.unwrap_or_default()
@@ -117,7 +121,7 @@ impl Client {
                 if res.status().is_success() {
                     Ok(res)
                 } else {
-                    Err(APIError::GenericError(format!(
+                    Err(APIError::Unknown(format!(
                         "{}: {}",
                         res.status(),
                         res.text().await.unwrap_or_default()
@@ -138,7 +142,7 @@ impl Client {
                 if res.status().is_success() {
                     Ok(res)
                 } else {
-                    Err(APIError::GenericError(format!(
+                    Err(APIError::Unknown(format!(
                         "{}: {}",
                         res.status(),
                         res.text().await.unwrap_or_default()
@@ -149,7 +153,10 @@ impl Client {
         }
     }
 
-    pub async fn completion(&self, req: CompletionRequest) -> APIResult<CompletionResponse> {
+    pub async fn completion(
+        &self,
+        req: CompletionRequest,
+    ) -> APIResult<CompletionResponse> {
         let url = format!("{}{}", self.endpoint, "/completions");
         let response = self.client.post(&url).json(&req).send().await?;
         let headers = response.headers().clone();
@@ -191,7 +198,10 @@ impl Client {
         }
     }
 
-    pub async fn image_edit(&self, req: ImageEditRequest) -> APIResult<ImageEditResponse> {
+    pub async fn image_edit(
+        &self,
+        req: ImageEditRequest,
+    ) -> APIResult<ImageEditResponse> {
         let url = format!("{}{}", self.endpoint, "/images/edits");
         let response = self.client.post(&url).json(&req).send().await?;
         let headers = response.headers().clone();
@@ -246,7 +256,10 @@ impl Client {
         }
     }
 
-    pub async fn file_upload(&self, req: FileUploadRequest) -> APIResult<FileUploadResponse> {
+    pub async fn file_upload(
+        &self,
+        req: FileUploadRequest,
+    ) -> APIResult<FileUploadResponse> {
         let url = format!("{}{}", self.endpoint, "/files");
         let response = self.client.post(&url).json(&req).send().await?;
         let headers = response.headers().clone();
@@ -259,7 +272,10 @@ impl Client {
         }
     }
 
-    pub async fn file_delete(&self, req: FileDeleteRequest) -> APIResult<FileDeleteResponse> {
+    pub async fn file_delete(
+        &self,
+        req: FileDeleteRequest,
+    ) -> APIResult<FileDeleteResponse> {
         let url = format!("{}{}/{}", self.endpoint, "/files", req.file_id);
         let response = self.client.delete(&url).send().await?;
         let headers = response.headers().clone();
@@ -272,7 +288,10 @@ impl Client {
         }
     }
 
-    pub async fn file_retrieve(&self, req: FileRetrieveRequest) -> APIResult<FileRetrieveResponse> {
+    pub async fn file_retrieve(
+        &self,
+        req: FileRetrieveRequest,
+    ) -> APIResult<FileRetrieveResponse> {
         let url = format!("{}{}/{}", self.endpoint, "/files", req.file_id);
         let response = self.client.get(&url).send().await?;
         let headers = response.headers().clone();
@@ -313,7 +332,10 @@ impl Client {
                 r.headers = Some(headermap_to_map(&headers));
                 Ok(r)
             }
-            Err(e) => Err(APIError::ReqwestError(e)),
+            Err(e) => {
+                error!("Chat completion error: {e:?}");
+                Err(APIError::ReqwestError(e))
+            }
         }
     }
 
@@ -349,7 +371,10 @@ impl Client {
         }
     }
 
-    pub async fn audio_speech(&self, req: AudioSpeechRequest) -> APIResult<AudioSpeechResponse> {
+    pub async fn audio_speech(
+        &self,
+        req: AudioSpeechRequest,
+    ) -> APIResult<AudioSpeechResponse> {
         let url = format!("{}{}", self.endpoint, "/audio/speech");
         let response = self.client.post(&url).json(&req).send().await?;
         let headers = response.headers().clone();
@@ -480,7 +505,10 @@ impl Client {
         }
     }
 
-    pub async fn create_assistant(&self, req: AssistantRequest) -> APIResult<AssistantObject> {
+    pub async fn create_assistant(
+        &self,
+        req: AssistantRequest,
+    ) -> APIResult<AssistantObject> {
         let url = format!("{}{}", self.endpoint, "/assistants");
         let response = self.client.post(&url).json(&req).send().await?;
         let headers = response.headers().clone();
@@ -493,7 +521,10 @@ impl Client {
         }
     }
 
-    pub async fn retrieve_assistant(&self, assistant_id: String) -> APIResult<AssistantObject> {
+    pub async fn retrieve_assistant(
+        &self,
+        assistant_id: String,
+    ) -> APIResult<AssistantObject> {
         let url = format!("{}{}{}", self.endpoint, "/assistants/", assistant_id);
         let response = self.client.get(&url).send().await?;
         let headers = response.headers().clone();
@@ -523,7 +554,10 @@ impl Client {
         }
     }
 
-    pub async fn delete_assistant(&self, assistant_id: String) -> APIResult<DeletionStatus> {
+    pub async fn delete_assistant(
+        &self,
+        assistant_id: String,
+    ) -> APIResult<DeletionStatus> {
         let url = format!("{}{}{}", self.endpoint, "/assistants/", assistant_id);
         let response = self.client.delete(&url).send().await?;
         let headers = response.headers().clone();
@@ -623,7 +657,8 @@ impl Client {
         after: Option<String>,
         before: Option<String>,
     ) -> APIResult<ListAssistantFile> {
-        let base_url = format!("{}{}{}/files", self.endpoint, "/assistants/", assistant_id);
+        let base_url =
+            format!("{}{}{}/files", self.endpoint, "/assistants/", assistant_id);
         let url = Client::query_params(limit, order, after, before, base_url);
         let response = self.client.get(&url).send().await?;
         let headers = response.headers().clone();
@@ -636,7 +671,10 @@ impl Client {
         }
     }
 
-    pub async fn create_thread(&self, req: CreateThreadRequest) -> APIResult<ThreadObject> {
+    pub async fn create_thread(
+        &self,
+        req: CreateThreadRequest,
+    ) -> APIResult<ThreadObject> {
         let url = format!("{}{}", self.endpoint, "/threads");
         let response = self.client.post(&url).json(&req).send().await?;
         let headers = response.headers().clone();
@@ -826,7 +864,11 @@ impl Client {
         }
     }
 
-    pub async fn retrieve_run(&self, thread_id: String, run_id: String) -> APIResult<RunObject> {
+    pub async fn retrieve_run(
+        &self,
+        thread_id: String,
+        run_id: String,
+    ) -> APIResult<RunObject> {
         let url = format!(
             "{}{}{}/runs/{}",
             self.endpoint, "/threads/", thread_id, run_id
@@ -884,7 +926,11 @@ impl Client {
         }
     }
 
-    pub async fn cancel_run(&self, thread_id: String, run_id: String) -> APIResult<RunObject> {
+    pub async fn cancel_run(
+        &self,
+        thread_id: String,
+        run_id: String,
+    ) -> APIResult<RunObject> {
         let url = format!(
             "{}{}{}/runs/{}/cancel",
             self.endpoint, "/threads/", thread_id, run_id
