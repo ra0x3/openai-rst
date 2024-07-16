@@ -1,5 +1,3 @@
-use async_std::io::Error as AsyncError;
-use serde_json::Error as SerdeError;
 use thiserror::Error;
 
 #[derive(Debug, Error)]
@@ -9,7 +7,9 @@ pub enum APIError {
     #[error("Unknown: {0}")]
     Unknown(String),
     #[error("SerdeError: {0}")]
-    SerdeError(#[from] SerdeError),
+    SerdeError(#[from] serde_json::Error),
     #[error("AsyncError: {0}")]
-    AsyncError(#[from] AsyncError),
+    AsyncError(#[from] async_std::io::Error),
+    #[error("HeaderError: {0}")]
+    InvalidHeaderValue(#[from] reqwest::header::InvalidHeaderValue),
 }

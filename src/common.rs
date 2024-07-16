@@ -1,9 +1,7 @@
 use serde::{Deserialize, Serialize};
 use strum::{AsRefStr, Display, EnumString};
 
-#[derive(
-    Debug, Deserialize, EnumString, Serialize, Clone, PartialEq, Eq, AsRefStr, Display,
-)]
+#[derive(Debug, Deserialize, EnumString, Serialize, Clone, PartialEq, Eq, AsRefStr, Display)]
 pub enum MessageRole {
     #[serde(rename = "user")]
     #[strum(serialize = "user")]

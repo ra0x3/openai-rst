@@ -7,7 +7,7 @@ use std::env;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let client = Client::new(env::var("OPENAI_API_KEY").unwrap().to_string());
+    let client = Client::new(env::var("OPENAI_API_KEY").unwrap().to_string()).unwrap();
 
     let req = CompletionRequest::new(
         Model::GPT3(GPT3::GPT35Turbo),

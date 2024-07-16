@@ -7,7 +7,7 @@ use std::env;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let client = Client::new(env::var("OPENAI_API_KEY").unwrap().to_string());
+    let client = Client::new(env::var("OPENAI_API_KEY").unwrap().to_string()).unwrap();
 
     let mut req = EmbeddingRequest::new(
         Model::Embedding(EmbeddingsModels::TextEmbeddingAda002),

@@ -1,0 +1,114 @@
+name: Continuous Integration
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    types: [opened, synchronize, reopened, closed]
+  release:
+    types:
+      - published
+env:
+  REGISTRY: ghcr.io
+  RUSTC_VERSION: 1.78.0
+  BRANCH_NAME: ${{ github.head_ref || github.ref_name }}
+  IS_MAIN: ${{ github.head_ref == 'main' || github.ref_name == 'main' }}
+  IS_DEVELOP: ${{ github.head_ref == 'develop' || github.ref_name == 'develop' }}
+  IS_RELEASE: ${{ github.event_name == 'release' && github.event.action == 'published' }}
+
+jobs:
+  cancel-previous-runs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Cancel Previous Runs
+        uses: styfle/cancel-workflow-action@0.9.1
+        with:
+          access_token: ${{ github.token }}
+  set-env-vars:
+    runs-on: ubuntu-latest
+    needs:
+      - cancel-previous-runs
+    outputs:
+      IS_MAIN: ${{ steps.set-env.outputs.IS_MAIN }}
+      IS_DEVELOP: ${{ steps.set-env.outputs.IS_DEVELOP }}
+      IS_RELEASE: ${{ steps.set-env.outputs.IS_RELEASE }}
+      IS_RELEASE_OR_MASTER_OR_DEVELOP_OR_SEMVER: ${{ steps.set-env.outputs.IS_RELEASE_OR_MASTER_OR_DEVELOP_OR_SEMVER }}
+    steps:
+      - name: Set env vars
+        id: set-env
+        # NOTE: No spaces between `echo` will do weird things
+        run: >
+          echo "IS_MAIN=${{ env.IS_MAIN }}" >> $GITHUB_OUTPUT
+
+          echo "IS_DEVELOP=${{ env.IS_DEVELOP }}" >> $GITHUB_OUTPUT
+
+          echo "IS_RELEASE=${{ env.IS_RELEASE }}" >> $GITHUB_OUTPUT
+
+          if [[ ${{ env.IS_MAIN }} == 'true' || ${{ env.IS_DEVELOP }} == 'true' || ${{ env.IS_RELEASE }} == 'true' || ${{ env.BRANCH_NAME }} =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "IS_RELEASE_OR_MASTER_OR_DEVELOP_OR_SEMVER=true" >> $GITHUB_OUTPUT
+          else
+            echo "IS_RELEASE_OR_MASTER_OR_DEVELOP_OR_SEMVER=false" >> $GITHUB_OUTPUT
+          fi
+
+  openai-rst-cargo-toml-fmt-check:
+    runs-on: ubuntu-latest
+    needs: set-env-vars
+    steps:
+      - uses: actions/checkout@v3
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ env.RUSTC_VERSION }}
+      - name: setup binstall
+        uses: taiki-e/install-action@cargo-binstall
+      - name: Install Cargo.toml linter
+        run: cargo binstall --no-confirm cargo-sort
+      - name: Run Cargo.toml sort check
+        run: cargo sort -w --check
+
+  openai-rst-cargo-fmt-check:
+    if: needs.set-env-vars.outputs.IS_RELEASE != 'true'
+    runs-on: ubuntu-latest
+    needs: set-env-vars
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install toolchain
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ env.RUSTC_VERSION }}
+          components: rustfmt
+      - name: cargo fmt --all --verbose -- --check
+        run: cargo fmt --all --verbose -- --check
+
+  openai-rst-cargo-clippy-no-default-features:
+    runs-on: ubuntu-latest
+    needs:
+      - set-env-vars
+      - openai-rst-cargo-toml-fmt-check
+      - openai-rst-cargo-fmt-check
+    if: needs.set-env-vars.outputs.IS_RELEASE_OR_MASTER_OR_DEVELOP_OR_SEMVER != 'true'
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install toolchain
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ env.RUSTC_VERSION }}
+          components: clippy, rustfmt
+      - name: cargo clippy --locked --no-default-features
+        run: cargo clippy --locked --no-default-features
+
+  openai-rst-cargo-clippy-all-features-all-targets:
+    runs-on: ubuntu-latest
+    needs:
+      - set-env-vars
+      - openai-rst-cargo-toml-fmt-check
+      - openai-rst-cargo-fmt-check
+    if: needs.set-env-vars.outputs.IS_RELEASE_OR_MASTER_OR_DEVELOP_OR_SEMVER != 'true'
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install toolchain
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ env.RUSTC_VERSION }}
+          components: clippy, rustfmt
+      - name: cargo clippy --locked --all-targets --all-features
+        run: cargo clippy --locked --all-targets --all-features

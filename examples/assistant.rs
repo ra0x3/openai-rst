@@ -11,7 +11,7 @@ use std::{collections::HashMap, env};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let client = Client::new(env::var("OPENAI_API_KEY").unwrap().to_string());
+    let client = Client::new(env::var("OPENAI_API_KEY").unwrap().to_string()).unwrap();
 
     let mut tools = HashMap::new();
     tools.insert("type".to_string(), "code_interpreter".to_string());

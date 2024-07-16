@@ -22,7 +22,7 @@ $ export OPENAI_API_KEY=sk-xxxxxxx
 
 ### Create client
 ```rust
-let client = Client::new(env::var("OPENAI_API_KEY").unwrap().to_string());
+let client = Client::new(env::var("OPENAI_API_KEY").unwrap().to_string()).unwrap();
 ```
 
 ### Create request
@@ -54,7 +54,7 @@ use openai_rst::{chat_completion::ChatCompletionRequest, client::Client, models:
 use std::env;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let client = Client::new(env::var("OPENAI_API_KEY").unwrap().to_string());
+    let client = Client::new(env::var("OPENAI_API_KEY").unwrap().to_string()).unwrap();
 
     let req = ChatCompletionRequest::new(
         Model::GPT4(GPT4::GPT4),

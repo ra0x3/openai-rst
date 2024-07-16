@@ -1,8 +1,7 @@
 use openai_rst::{
     chat_completion::{
         ChatCompletionMessage, ChatCompletionRequest, Content, FinishReason, Function,
-        FunctionParameters, JSONSchemaDefine, JSONSchemaType, Tool, ToolChoiceType,
-        ToolType,
+        FunctionParameters, JSONSchemaDefine, JSONSchemaType, Tool, ToolChoiceType, ToolType,
     },
     client::Client,
     common::MessageRole,
@@ -22,7 +21,7 @@ fn get_coin_price(coin: &str) -> f64 {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let client = Client::new(env::var("OPENAI_API_KEY").unwrap().to_string());
+    let client = Client::new(env::var("OPENAI_API_KEY").unwrap().to_string()).unwrap();
 
     let mut properties = HashMap::new();
     properties.insert(
