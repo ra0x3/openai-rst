@@ -5,7 +5,7 @@ use openai_rst::{
     models::{Model, GPT3},
 };
 use serde::{Deserialize, Serialize};
-use std::{collections::HashMap, env, vec};
+use std::{collections::HashMap, vec};
 
 fn get_coin_price(coin: &str) -> f64 {
     let coin = coin.to_lowercase();
@@ -18,7 +18,7 @@ fn get_coin_price(coin: &str) -> f64 {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let client = Client::new(env::var("OPENAI_API_KEY").unwrap().to_string()).unwrap();
+    let client = Client::from_env().unwrap();
 
     let mut properties = HashMap::new();
     properties.insert(
@@ -30,7 +30,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }),
     );
 
-    let req = ChatCompletionRequest::new(
+    let req = ChatCompletionRequest::new_multi(
         Model::GPT3(GPT3::GPT35Turbo),
         vec![chat_completion::ChatCompletionMessage {
             role: MessageRole::User,
@@ -81,7 +81,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 let price = get_coin_price(&coin);
                 println!("price: {}", price);
 
-                let req = ChatCompletionRequest::new(
+                let req = ChatCompletionRequest::new_multi(
                     Model::GPT3(GPT3::GPT35Turbo),
                     vec![
                         chat_completion::ChatCompletionMessage {

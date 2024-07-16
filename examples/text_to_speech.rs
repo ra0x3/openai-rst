@@ -1,10 +1,9 @@
 use openai_rst::audio::{self, AudioSpeechRequest, TTS_1};
 use openai_rst::client::Client;
-use std::env;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let client = Client::new(env::var("OPENAI_API_KEY").unwrap().to_string()).unwrap();
+    let client = Client::from_env().unwrap();
 
     let req = AudioSpeechRequest::new(
         TTS_1.to_string(),

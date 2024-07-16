@@ -4,13 +4,12 @@ use openai_rst::{
     common::MessageRole,
     models::{Model, GPT4},
 };
-use std::env;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let client = Client::new(env::var("OPENAI_API_KEY").unwrap().to_string()).unwrap();
+    let client = Client::from_env().unwrap();
 
-    let req = ChatCompletionRequest::new(
+    let req = ChatCompletionRequest::new_multi(
         Model::GPT4(GPT4::GPT40125Preview),
         vec![chat_completion::ChatCompletionMessage {
             role: MessageRole::User,

@@ -1,3 +1,8 @@
+//! This module defines the `Client` struct for interacting with the OpenAI API.
+//! It includes methods for handling various types of requests such as text completion,
+//! image generation, file management, and more.
+//! The `Client` struct encapsulates the logic for making HTTP requests to the API endpoints.
+
 use crate::{
     assistant::{
         AssistantFileObject, AssistantFileRequest, AssistantObject, AssistantRequest,
@@ -45,28 +50,28 @@ use reqwest::{
     header::{HeaderMap, HeaderValue, AUTHORIZATION, CONTENT_TYPE},
     Client as ReqwestClient, Response,
 };
-use std::{collections::HashMap, path::Path};
+use std::path::Path;
 
 const API_URL_V1: &str = "https://api.openai.com/v1";
 
+/// Result type alias for client operations.
 type ClientResult<T> = Result<T, APIError>;
 
+/// The `Client` struct for interacting with the OpenAI API.
 pub struct Client {
+    /// API endpoint URL.
     pub endpoint: String,
+    /// API key for authentication.
     pub api_key: String,
+    /// Reqwest client for making HTTP requests.
     pub client: ReqwestClient,
 }
 
-fn headermap_to_map(headers: &HeaderMap) -> HashMap<String, String> {
-    headers
-        .iter()
-        .filter_map(|(k, v)| Some((k.as_str().to_string(), v.to_str().ok()?.to_string())))
-        .collect()
-}
-
 impl Client {
-    pub fn new(api_key: String) -> ClientResult<Self> {
+    /// Creates a new `Client` instance from environment variables.
+    pub fn from_env() -> ClientResult<Self> {
         let endpoint = std::env::var("OPENAI_API_BASE").unwrap_or_else(|_| API_URL_V1.to_owned());
+        let api_key = std::env::var("OPENAI_API_KEY").expect("OPENAI_API_KEY is not set");
         let mut headers = HeaderMap::new();
         headers.insert(CONTENT_TYPE, HeaderValue::from_static("application/json"));
         headers.insert(
@@ -83,10 +88,30 @@ impl Client {
         })
     }
 
+    /// Creates a new `Client` instance with the given API key.
+    pub fn new(api_key: String) -> ClientResult<Self> {
+        let mut headers = HeaderMap::new();
+        headers.insert(CONTENT_TYPE, HeaderValue::from_static("application/json"));
+        headers.insert(
+            AUTHORIZATION,
+            HeaderValue::from_str(&format!("Bearer {}", api_key))?,
+        );
+
+        let client = ReqwestClient::builder().default_headers(headers).build()?;
+
+        Ok(Self {
+            endpoint: API_URL_V1.to_owned(),
+            api_key,
+            client,
+        })
+    }
+
+    /// Constructs a full API path from a given endpoint path.
     fn from_path(p: &str) -> String {
         format!("{}{}", API_URL_V1, p)
     }
 
+    /// Sends a POST request with the given path and parameters.
     pub async fn post<T: serde::ser::Serialize>(
         &self,
         path: &str,
@@ -101,6 +126,7 @@ impl Client {
             .map_err(APIError::ReqwestError)
     }
 
+    /// Sends a GET request to the given path.
     pub async fn get(&self, path: &str) -> ClientResult<Response> {
         let url = Client::from_path(path);
         self.client
@@ -110,6 +136,7 @@ impl Client {
             .map_err(APIError::ReqwestError)
     }
 
+    /// Sends a DELETE request to the given path.
     pub async fn delete(&self, path: &str) -> ClientResult<Response> {
         let url = Client::from_path(path);
         self.client
@@ -119,19 +146,20 @@ impl Client {
             .map_err(APIError::ReqwestError)
     }
 
+    /// Sends a completion request and returns the response.
     pub async fn completion(&self, req: CompletionRequest) -> ClientResult<CompletionResponse> {
         let url = Client::from_path("/completions");
         self.client
             .post(&url)
             .json(&req)
             .send()
-            .await
-            .map_err(APIError::ReqwestError)?
+            .await?
             .json::<CompletionResponse>()
             .await
             .map_err(APIError::ReqwestError)
     }
 
+    /// Sends an edit request and returns the response.
     pub async fn edit(&self, req: EditRequest) -> ClientResult<EditResponse> {
         let url = Client::from_path("/edits");
         self.client
@@ -144,6 +172,7 @@ impl Client {
             .map_err(APIError::ReqwestError)
     }
 
+    /// Sends an image generation request and returns the response.
     pub async fn image_generation(
         &self,
         req: ImageGenerationRequest,
@@ -159,6 +188,7 @@ impl Client {
             .map_err(APIError::ReqwestError)
     }
 
+    /// Sends an image edit request and returns the response.
     pub async fn image_edit(&self, req: ImageEditRequest) -> ClientResult<ImageEditResponse> {
         let url = Client::from_path("/images/edits");
         self.client
@@ -171,6 +201,7 @@ impl Client {
             .map_err(APIError::ReqwestError)
     }
 
+    /// Sends an image variation request and returns the response.
     pub async fn image_variation(
         &self,
         req: ImageVariationRequest,
@@ -186,6 +217,7 @@ impl Client {
             .map_err(APIError::ReqwestError)
     }
 
+    /// Sends an embedding request and returns the response.
     pub async fn embedding(&self, req: EmbeddingRequest) -> ClientResult<EmbeddingResponse> {
         let url = Client::from_path("/embeddings");
         self.client
@@ -198,6 +230,7 @@ impl Client {
             .map_err(APIError::ReqwestError)
     }
 
+    /// Retrieves a list of files.
     pub async fn file_list(&self) -> ClientResult<FileListResponse> {
         let url = Client::from_path("/files");
         self.client
@@ -209,6 +242,7 @@ impl Client {
             .map_err(APIError::ReqwestError)
     }
 
+    /// Uploads a file and returns the response.
     pub async fn file_upload(&self, req: FileUploadRequest) -> ClientResult<FileUploadResponse> {
         let url = Client::from_path("/files");
         self.client
@@ -221,6 +255,7 @@ impl Client {
             .map_err(APIError::ReqwestError)
     }
 
+    /// Deletes a file and returns the response.
     pub async fn file_delete(&self, req: FileDeleteRequest) -> ClientResult<FileDeleteResponse> {
         let path = format!("/files/{}", req.file_id);
         let url = Client::from_path(&path);
@@ -233,6 +268,7 @@ impl Client {
             .map_err(APIError::ReqwestError)
     }
 
+    /// Retrieves a file's metadata and returns the response.
     pub async fn file_retrieve(
         &self,
         req: FileRetrieveRequest,
@@ -248,6 +284,7 @@ impl Client {
             .map_err(APIError::ReqwestError)
     }
 
+    /// Retrieves the content of a file and returns the response.
     pub async fn file_retrieve_content(
         &self,
         req: FileRetrieveContentRequest,
@@ -263,6 +300,7 @@ impl Client {
             .map_err(APIError::ReqwestError)
     }
 
+    /// Sends a chat completion request and returns the response.
     pub async fn chat_completion(
         &self,
         req: ChatCompletionRequest,
@@ -278,6 +316,7 @@ impl Client {
             .map_err(APIError::ReqwestError)
     }
 
+    /// Sends an audio transcription request and returns the response.
     pub async fn audio_transcription(
         &self,
         req: AudioTranscriptionRequest,
@@ -293,6 +332,7 @@ impl Client {
             .map_err(APIError::ReqwestError)
     }
 
+    /// Sends an audio translation request and returns the response.
     pub async fn audio_translation(
         &self,
         req: AudioTranslationRequest,
@@ -308,12 +348,11 @@ impl Client {
             .map_err(APIError::ReqwestError)
     }
 
+    /// Sends an audio speech request, saves the response to a file, and returns the response.
     pub async fn audio_speech(&self, req: AudioSpeechRequest) -> ClientResult<AudioSpeechResponse> {
         let url = Client::from_path("/audio/speech");
         let response = self.client.post(&url).json(&req).send().await?;
-        let headers = response.headers().clone();
 
-        // TODO: Fix this, use tmpdir
         let bytes = response.bytes().await?;
         let path = Path::new(&req.output);
         if let Some(parent) = path.parent() {
@@ -323,12 +362,10 @@ impl Client {
         let mut file = File::create(path).await?;
         file.write_all(&bytes).await?;
 
-        Ok(AudioSpeechResponse {
-            result: true,
-            headers: Some(headermap_to_map(&headers)),
-        })
+        Ok(AudioSpeechResponse { result: true })
     }
 
+    /// Creates a fine-tuning job and returns the response.
     pub async fn create_fine_tuning_job(
         &self,
         req: CreateFineTuningJobRequest,
@@ -344,6 +381,7 @@ impl Client {
             .map_err(APIError::ReqwestError)
     }
 
+    /// Lists fine-tuning jobs and returns the response.
     pub async fn list_fine_tuning_jobs(
         &self,
     ) -> ClientResult<FineTuningPagination<FineTuningJobObject>> {
@@ -357,6 +395,7 @@ impl Client {
             .map_err(APIError::ReqwestError)
     }
 
+    /// Lists fine-tuning job events and returns the response.
     pub async fn list_fine_tuning_job_events(
         &self,
         req: ListFineTuningJobEventsRequest,
@@ -372,6 +411,7 @@ impl Client {
             .map_err(APIError::ReqwestError)
     }
 
+    /// Retrieves a fine-tuning job and returns the response.
     pub async fn retrieve_fine_tuning_job(
         &self,
         req: RetrieveFineTuningJobRequest,
@@ -387,6 +427,7 @@ impl Client {
             .map_err(APIError::ReqwestError)
     }
 
+    /// Cancels a fine-tuning job and returns the response.
     pub async fn cancel_fine_tuning_job(
         &self,
         req: CancelFineTuningJobRequest,
@@ -402,6 +443,7 @@ impl Client {
             .map_err(APIError::ReqwestError)
     }
 
+    /// Creates a moderation request and returns the response.
     pub async fn create_moderation(
         &self,
         req: CreateModerationRequest,
@@ -417,6 +459,7 @@ impl Client {
             .map_err(APIError::ReqwestError)
     }
 
+    /// Creates an assistant and returns the response.
     pub async fn create_assistant(&self, req: AssistantRequest) -> ClientResult<AssistantObject> {
         let url = Client::from_path("/assistants");
         self.client
@@ -429,6 +472,7 @@ impl Client {
             .map_err(APIError::ReqwestError)
     }
 
+    /// Retrieves an assistant and returns the response.
     pub async fn retrieve_assistant(&self, assistant_id: String) -> ClientResult<AssistantObject> {
         let path = format!("/assistants/{}", assistant_id);
         let url = Client::from_path(&path);
@@ -441,6 +485,7 @@ impl Client {
             .map_err(APIError::ReqwestError)
     }
 
+    /// Modifies an assistant and returns the response.
     pub async fn modify_assistant(
         &self,
         assistant_id: String,
@@ -458,6 +503,7 @@ impl Client {
             .map_err(APIError::ReqwestError)
     }
 
+    /// Deletes an assistant and returns the response.
     pub async fn delete_assistant(&self, assistant_id: String) -> ClientResult<DeletionStatus> {
         let path = format!("/assistants/{}", assistant_id);
         let url = Client::from_path(&path);
@@ -470,6 +516,7 @@ impl Client {
             .map_err(APIError::ReqwestError)
     }
 
+    /// Lists assistants and returns the response.
     pub async fn list_assistant(
         &self,
         limit: Option<i64>,
@@ -488,6 +535,7 @@ impl Client {
             .map_err(APIError::ReqwestError)
     }
 
+    /// Creates an assistant file and returns the response.
     pub async fn create_assistant_file(
         &self,
         assistant_id: String,
@@ -505,6 +553,7 @@ impl Client {
             .map_err(APIError::ReqwestError)
     }
 
+    /// Retrieves an assistant file and returns the response.
     pub async fn retrieve_assistant_file(
         &self,
         assistant_id: String,
@@ -521,6 +570,7 @@ impl Client {
             .map_err(APIError::ReqwestError)
     }
 
+    /// Deletes an assistant file and returns the response.
     pub async fn delete_assistant_file(
         &self,
         assistant_id: String,
@@ -537,6 +587,7 @@ impl Client {
             .map_err(APIError::ReqwestError)
     }
 
+    /// Lists assistant files and returns the response.
     pub async fn list_assistant_file(
         &self,
         assistant_id: String,
@@ -557,6 +608,7 @@ impl Client {
             .map_err(APIError::ReqwestError)
     }
 
+    /// Creates a thread and returns the response.
     pub async fn create_thread(&self, req: CreateThreadRequest) -> ClientResult<ThreadObject> {
         let url = Client::from_path("/threads");
         self.client
@@ -569,6 +621,7 @@ impl Client {
             .map_err(APIError::ReqwestError)
     }
 
+    /// Retrieves a thread and returns the response.
     pub async fn retrieve_thread(&self, thread_id: String) -> ClientResult<ThreadObject> {
         let path = format!("/threads/{}", thread_id);
         let url = Client::from_path(&path);
@@ -581,6 +634,7 @@ impl Client {
             .map_err(APIError::ReqwestError)
     }
 
+    /// Modifies a thread and returns the response.
     pub async fn modify_thread(
         &self,
         thread_id: String,
@@ -598,6 +652,7 @@ impl Client {
             .map_err(APIError::ReqwestError)
     }
 
+    /// Deletes a thread and returns the response.
     pub async fn delete_thread(&self, thread_id: String) -> ClientResult<DeletionStatus> {
         let path = format!("/threads/{}", thread_id);
         let url = Client::from_path(&path);
@@ -610,6 +665,7 @@ impl Client {
             .map_err(APIError::ReqwestError)
     }
 
+    /// Creates a message in a thread and returns the response.
     pub async fn create_message(
         &self,
         thread_id: String,
@@ -627,6 +683,7 @@ impl Client {
             .map_err(APIError::ReqwestError)
     }
 
+    /// Retrieves a message in a thread and returns the response.
     pub async fn retrieve_message(
         &self,
         thread_id: String,
@@ -643,6 +700,7 @@ impl Client {
             .map_err(APIError::ReqwestError)
     }
 
+    /// Modifies a message in a thread and returns the response.
     pub async fn modify_message(
         &self,
         thread_id: String,
@@ -661,6 +719,7 @@ impl Client {
             .map_err(APIError::ReqwestError)
     }
 
+    /// Lists messages in a thread and returns the response.
     pub async fn list_messages(&self, thread_id: String) -> ClientResult<ListMessage> {
         let path = format!("/threads/{}/messages", thread_id);
         let url = Client::from_path(&path);
@@ -673,6 +732,7 @@ impl Client {
             .map_err(APIError::ReqwestError)
     }
 
+    /// Retrieves a file associated with a message and returns the response.
     pub async fn retrieve_message_file(
         &self,
         thread_id: String,
@@ -693,6 +753,7 @@ impl Client {
             .map_err(APIError::ReqwestError)
     }
 
+    /// Lists files associated with a message and returns the response.
     pub async fn list_message_file(
         &self,
         thread_id: String,
@@ -714,6 +775,7 @@ impl Client {
             .map_err(APIError::ReqwestError)
     }
 
+    /// Creates a run in a thread and returns the response.
     pub async fn create_run(
         &self,
         thread_id: String,
@@ -731,6 +793,7 @@ impl Client {
             .map_err(APIError::ReqwestError)
     }
 
+    /// Retrieves a run in a thread and returns the response.
     pub async fn retrieve_run(&self, thread_id: String, run_id: String) -> ClientResult<RunObject> {
         let path = format!("/threads/{}/runs/{}", thread_id, run_id);
         let url = Client::from_path(&path);
@@ -743,6 +806,7 @@ impl Client {
             .map_err(APIError::ReqwestError)
     }
 
+    /// Modifies a run in a thread and returns the response.
     pub async fn modify_run(
         &self,
         thread_id: String,
@@ -761,6 +825,7 @@ impl Client {
             .map_err(APIError::ReqwestError)
     }
 
+    /// Lists runs in a thread and returns the response.
     pub async fn list_run(
         &self,
         thread_id: String,
@@ -781,6 +846,7 @@ impl Client {
             .map_err(APIError::ReqwestError)
     }
 
+    /// Cancels a run in a thread and returns the response.
     pub async fn cancel_run(&self, thread_id: String, run_id: String) -> ClientResult<RunObject> {
         let path = format!("/threads/{}/runs/{}/cancel", thread_id, run_id);
         let url = Client::from_path(&path);
@@ -795,6 +861,7 @@ impl Client {
             .map_err(APIError::ReqwestError)
     }
 
+    /// Creates a thread and a run and returns the response.
     pub async fn create_thread_and_run(
         &self,
         req: CreateThreadAndRunRequest,
@@ -810,6 +877,7 @@ impl Client {
             .map_err(APIError::ReqwestError)
     }
 
+    /// Retrieves a step in a run and returns the response.
     pub async fn retrieve_run_step(
         &self,
         thread_id: String,
@@ -827,6 +895,7 @@ impl Client {
             .map_err(APIError::ReqwestError)
     }
 
+    /// Lists steps in a run and returns the response.
     pub async fn list_run_step(
         &self,
         thread_id: String,
@@ -839,17 +908,16 @@ impl Client {
         let path = format!("/threads/{}/runs/{}/steps", thread_id, run_id);
         let path = Client::query_params(limit, order, after, before, path);
         let url = Client::from_path(&path);
-        let response = self.client.get(&url).send().await?;
-        let headers = response.headers().clone();
-        match response.json::<ListRunStep>().await {
-            Ok(mut r) => {
-                r.headers = Some(headermap_to_map(&headers));
-                Ok(r)
-            }
-            Err(e) => Err(APIError::ReqwestError(e)),
-        }
+        self.client
+            .get(&url)
+            .send()
+            .await?
+            .json::<ListRunStep>()
+            .await
+            .map_err(APIError::ReqwestError)
     }
 
+    /// Constructs a query parameter string from the given options and appends it to the URL.
     fn query_params(
         limit: Option<i64>,
         order: Option<String>,

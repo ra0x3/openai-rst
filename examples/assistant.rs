@@ -7,11 +7,11 @@ use openai_rst::{
     run::CreateRunRequest,
     thread::CreateThreadRequest,
 };
-use std::{collections::HashMap, env};
+use std::collections::HashMap;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let client = Client::new(env::var("OPENAI_API_KEY").unwrap().to_string()).unwrap();
+    let client = Client::from_env().unwrap();
 
     let mut tools = HashMap::new();
     tools.insert("type".to_string(), "code_interpreter".to_string());

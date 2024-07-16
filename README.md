@@ -22,12 +22,23 @@ $ export OPENAI_API_KEY=sk-xxxxxxx
 
 ### Create client
 ```rust
-let client = Client::new(env::var("OPENAI_API_KEY").unwrap().to_string()).unwrap();
+let client = Client::from_env().unwrap();
 ```
 
 ### Create request
 ```rust
+// Single request
 let req = ChatCompletionRequest::new(
+    Model::GPT4(GPT4::GPT4),
+    ChatCompletionMessage {
+        role: MessageRole::User,
+        content: Content::Text(String::from("What is bitcoin?")),
+        name: None,
+    },
+);
+
+// Multiple requests
+let req = ChatCompletionRequest::new_multi(
     Model::GPT4(GPT4::GPT4),
     vec![ChatCompletionMessage {
         role: MessageRole::User,
@@ -40,7 +51,7 @@ let req = ChatCompletionRequest::new(
 ### Send request
 ```rust
 let result = client.chat_completion(req)?;
-println!("Content: {:?}", result.choices[0].message.content);
+println!("Content: {:?}", result.get_choice());
 ```
 
 ### Set OPENAI_API_BASE to environment variable (optional)
@@ -51,22 +62,12 @@ $ export OPENAI_API_BASE=https://api.openai.com/v1
 ## Example of chat completion
 ```rust
 use openai_rst::{chat_completion::ChatCompletionRequest, client::Client, models::{Model, GPT4}};
-use std::env;
-
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let client = Client::new(env::var("OPENAI_API_KEY").unwrap().to_string()).unwrap();
-
-    let req = ChatCompletionRequest::new(
-        Model::GPT4(GPT4::GPT4),
-        vec![ChatCompletionMessage {
-            role: MessageRole::User,
-            content: Content::Text(String::from("What is bitcoin?")),
-            name: None,
-        }],
-    );
-
-    let result = client.chat_completion(req)?;
-    println!("Content: {:?}", result.choices[0].message.content);
+    let client = Client::from_env().unwrap();
+    let req = "What is bitcoin?".into();
+    let result = client.chat_completion(req).await?;
+    
+    println!("Content: {:?}", result.get_choice());
     println!("Response Headers: {:?}", result.headers);
 
     Ok(())
