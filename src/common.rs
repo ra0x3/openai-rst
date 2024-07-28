@@ -8,7 +8,9 @@ use serde::{Deserialize, Serialize};
 use strum::{AsRefStr, Display, EnumString};
 
 /// Represents different roles in a messaging system.
-#[derive(Debug, Deserialize, EnumString, Serialize, Clone, PartialEq, Eq, AsRefStr, Display)]
+#[derive(
+    Debug, Deserialize, EnumString, Serialize, Clone, PartialEq, Eq, AsRefStr, Display,
+)]
 pub enum MessageRole {
     /// Represents a user role.
     #[serde(rename = "user")]

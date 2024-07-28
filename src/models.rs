@@ -106,7 +106,7 @@ pub enum EmbeddingsModels {
 }
 
 /// Enum representing various AI models.
-#[derive(Debug, Serialize, Deserialize, Clone, Display)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub enum Model {
     /// GPT-4 models for advanced language processing.
     GPT4(GPT4),
@@ -131,5 +131,20 @@ impl Default for Model {
     /// Provides a default implementation for `Model`, defaulting to GPT-4o.
     fn default() -> Self {
         Model::GPT4(GPT4::GPT4o)
+    }
+}
+
+#[allow(clippy::to_string_trait_impl)]
+impl ToString for Model {
+    /// Converts a `Model` enum variant to a string representation.
+    fn to_string(&self) -> String {
+        match self {
+            Model::GPT4(model) => model.to_string(),
+            Model::GPT3(model) => model.to_string(),
+            Model::Dalle(model) => model.to_string(),
+            Model::Whisper(model) => model.to_string(),
+            Model::Clip(model) => model.to_string(),
+            Model::Embedding(model) => model.to_string(),
+        }
     }
 }

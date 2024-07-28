@@ -34,7 +34,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         Model::GPT3(GPT3::GPT35Turbo),
         vec![chat_completion::ChatCompletionMessage {
             role: MessageRole::User,
-            content: chat_completion::Content::Text(String::from("What is the price of Ethereum?")),
+            content: chat_completion::Content::Text(String::from(
+                "What is the price of Ethereum?",
+            )),
             name: None,
         }],
     )

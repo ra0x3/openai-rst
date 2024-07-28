@@ -142,6 +142,20 @@ impl From<&str> for ChatCompletionRequest {
     }
 }
 
+impl From<String> for ChatCompletionRequest {
+    /// Converts a string into a `ChatCompletionRequest`.
+    fn from(text: String) -> Self {
+        ChatCompletionRequest::new(
+            Model::GPT4(crate::models::GPT4::GPT4o),
+            ChatCompletionMessage {
+                role: MessageRole::User,
+                content: Content::Text(text),
+                name: None,
+            },
+        )
+    }
+}
+
 impl_builder_methods!(
     ChatCompletionRequest,
     temperature: f64,

@@ -18,9 +18,9 @@ use crate::{
     embedding::{EmbeddingRequest, EmbeddingResponse},
     error::APIError,
     file::{
-        FileDeleteRequest, FileDeleteResponse, FileListResponse, FileRetrieveContentRequest,
-        FileRetrieveContentResponse, FileRetrieveRequest, FileRetrieveResponse, FileUploadRequest,
-        FileUploadResponse,
+        FileDeleteRequest, FileDeleteResponse, FileListResponse,
+        FileRetrieveContentRequest, FileRetrieveContentResponse, FileRetrieveRequest,
+        FileRetrieveResponse, FileUploadRequest, FileUploadResponse,
     },
     fine_tuning::{
         CancelFineTuningJobRequest, CreateFineTuningJobRequest, FineTuningJobEvent,
@@ -28,17 +28,17 @@ use crate::{
         RetrieveFineTuningJobRequest,
     },
     image::{
-        ImageEditRequest, ImageEditResponse, ImageGenerationRequest, ImageGenerationResponse,
-        ImageVariationRequest, ImageVariationResponse,
+        ImageEditRequest, ImageEditResponse, ImageGenerationRequest,
+        ImageGenerationResponse, ImageVariationRequest, ImageVariationResponse,
     },
     message::{
-        CreateMessageRequest, ListMessage, ListMessageFile, MessageFileObject, MessageObject,
-        ModifyMessageRequest,
+        CreateMessageRequest, ListMessage, ListMessageFile, MessageFileObject,
+        MessageObject, ModifyMessageRequest,
     },
     moderation::{CreateModerationRequest, CreateModerationResponse},
     run::{
-        CreateRunRequest, CreateThreadAndRunRequest, ListRun, ListRunStep, ModifyRunRequest,
-        RunObject, RunStepObject,
+        CreateRunRequest, CreateThreadAndRunRequest, ListRun, ListRunStep,
+        ModifyRunRequest, RunObject, RunStepObject,
     },
     thread::{CreateThreadRequest, ModifyThreadRequest, ThreadObject},
 };
@@ -70,7 +70,8 @@ pub struct Client {
 impl Client {
     /// Creates a new `Client` instance from environment variables.
     pub fn from_env() -> ClientResult<Self> {
-        let endpoint = std::env::var("OPENAI_API_BASE").unwrap_or_else(|_| API_URL_V1.to_owned());
+        let endpoint =
+            std::env::var("OPENAI_API_BASE").unwrap_or_else(|_| API_URL_V1.to_owned());
         let api_key = std::env::var("OPENAI_API_KEY").expect("OPENAI_API_KEY is not set");
         let mut headers = HeaderMap::new();
         headers.insert(CONTENT_TYPE, HeaderValue::from_static("application/json"));
@@ -147,7 +148,10 @@ impl Client {
     }
 
     /// Sends a completion request and returns the response.
-    pub async fn completion(&self, req: CompletionRequest) -> ClientResult<CompletionResponse> {
+    pub async fn completion(
+        &self,
+        req: CompletionRequest,
+    ) -> ClientResult<CompletionResponse> {
         let url = Client::from_path("/completions");
         self.client
             .post(&url)
@@ -189,7 +193,10 @@ impl Client {
     }
 
     /// Sends an image edit request and returns the response.
-    pub async fn image_edit(&self, req: ImageEditRequest) -> ClientResult<ImageEditResponse> {
+    pub async fn image_edit(
+        &self,
+        req: ImageEditRequest,
+    ) -> ClientResult<ImageEditResponse> {
         let url = Client::from_path("/images/edits");
         self.client
             .post(&url)
@@ -218,7 +225,10 @@ impl Client {
     }
 
     /// Sends an embedding request and returns the response.
-    pub async fn embedding(&self, req: EmbeddingRequest) -> ClientResult<EmbeddingResponse> {
+    pub async fn embedding(
+        &self,
+        req: EmbeddingRequest,
+    ) -> ClientResult<EmbeddingResponse> {
         let url = Client::from_path("/embeddings");
         self.client
             .post(&url)
@@ -243,7 +253,10 @@ impl Client {
     }
 
     /// Uploads a file and returns the response.
-    pub async fn file_upload(&self, req: FileUploadRequest) -> ClientResult<FileUploadResponse> {
+    pub async fn file_upload(
+        &self,
+        req: FileUploadRequest,
+    ) -> ClientResult<FileUploadResponse> {
         let url = Client::from_path("/files");
         self.client
             .post(&url)
@@ -256,7 +269,10 @@ impl Client {
     }
 
     /// Deletes a file and returns the response.
-    pub async fn file_delete(&self, req: FileDeleteRequest) -> ClientResult<FileDeleteResponse> {
+    pub async fn file_delete(
+        &self,
+        req: FileDeleteRequest,
+    ) -> ClientResult<FileDeleteResponse> {
         let path = format!("/files/{}", req.file_id);
         let url = Client::from_path(&path);
         self.client
@@ -349,7 +365,10 @@ impl Client {
     }
 
     /// Sends an audio speech request, saves the response to a file, and returns the response.
-    pub async fn audio_speech(&self, req: AudioSpeechRequest) -> ClientResult<AudioSpeechResponse> {
+    pub async fn audio_speech(
+        &self,
+        req: AudioSpeechRequest,
+    ) -> ClientResult<AudioSpeechResponse> {
         let url = Client::from_path("/audio/speech");
         let response = self.client.post(&url).json(&req).send().await?;
 
@@ -460,7 +479,10 @@ impl Client {
     }
 
     /// Creates an assistant and returns the response.
-    pub async fn create_assistant(&self, req: AssistantRequest) -> ClientResult<AssistantObject> {
+    pub async fn create_assistant(
+        &self,
+        req: AssistantRequest,
+    ) -> ClientResult<AssistantObject> {
         let url = Client::from_path("/assistants");
         self.client
             .post(&url)
@@ -473,7 +495,10 @@ impl Client {
     }
 
     /// Retrieves an assistant and returns the response.
-    pub async fn retrieve_assistant(&self, assistant_id: String) -> ClientResult<AssistantObject> {
+    pub async fn retrieve_assistant(
+        &self,
+        assistant_id: String,
+    ) -> ClientResult<AssistantObject> {
         let path = format!("/assistants/{}", assistant_id);
         let url = Client::from_path(&path);
         self.client
@@ -504,7 +529,10 @@ impl Client {
     }
 
     /// Deletes an assistant and returns the response.
-    pub async fn delete_assistant(&self, assistant_id: String) -> ClientResult<DeletionStatus> {
+    pub async fn delete_assistant(
+        &self,
+        assistant_id: String,
+    ) -> ClientResult<DeletionStatus> {
         let path = format!("/assistants/{}", assistant_id);
         let url = Client::from_path(&path);
         self.client
@@ -609,7 +637,10 @@ impl Client {
     }
 
     /// Creates a thread and returns the response.
-    pub async fn create_thread(&self, req: CreateThreadRequest) -> ClientResult<ThreadObject> {
+    pub async fn create_thread(
+        &self,
+        req: CreateThreadRequest,
+    ) -> ClientResult<ThreadObject> {
         let url = Client::from_path("/threads");
         self.client
             .post(&url)
@@ -794,7 +825,11 @@ impl Client {
     }
 
     /// Retrieves a run in a thread and returns the response.
-    pub async fn retrieve_run(&self, thread_id: String, run_id: String) -> ClientResult<RunObject> {
+    pub async fn retrieve_run(
+        &self,
+        thread_id: String,
+        run_id: String,
+    ) -> ClientResult<RunObject> {
         let path = format!("/threads/{}/runs/{}", thread_id, run_id);
         let url = Client::from_path(&path);
         self.client
@@ -847,7 +882,11 @@ impl Client {
     }
 
     /// Cancels a run in a thread and returns the response.
-    pub async fn cancel_run(&self, thread_id: String, run_id: String) -> ClientResult<RunObject> {
+    pub async fn cancel_run(
+        &self,
+        thread_id: String,
+        run_id: String,
+    ) -> ClientResult<RunObject> {
         let path = format!("/threads/{}/runs/{}/cancel", thread_id, run_id);
         let url = Client::from_path(&path);
         let empty_req = ModifyRunRequest::new();
